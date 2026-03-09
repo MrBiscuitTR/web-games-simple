@@ -5,13 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Türk Tavlası</title>
     <link rel="stylesheet" href="style.css">
+    
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
+    <div id="landscapeWarning" class="landscape-warning">
+        <div class="warning-content">
+            <h2>Lütfen Cihazınızı Çevirin</h2>
+            <p>Bu oyun küçük ekranlarda dikey (portrait) modda oynanmak üzere tasarlanmıştır.</p>
+        </div>
+    </div>
+
     <div class="app-container">
         <div class="panel left-panel">
             <div class="mobile-flex-row">
+                <a href="/" class="global-hub-btn" aria-label="Ana Sayfa">🏠</a>
                 <button id="btnNewGame" class="action-btn">Yeni Oyun</button>
-                <button id="btnUndo" class="action-btn" disabled>Hamleyi Geri Al</button>
+                <button id="btnUndo" class="action-btn" disabled>Geri Al</button>
             </div>
             
             <details class="mobile-details" id="settingsDetails">

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Checkers | Dama</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta name="mobile-web-app-capable" content="yes">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="header-left">
+                <a href="/" class="global-hub-btn">🏠</a>
+                <h1 id="ui-title">Checkers</h1>
+            </div>
+            <select id="langPicker"><option value="en">English</option><option value="tr">Türkçe</option></select>
+        </header>
+
+        <div class="game-layout">
+            <div class="board-area">
+                <div class="tabs">
+                    <button id="tab-tr" class="active" onclick="switchMode('tr')">Turkish Dama</button>
+                    <button id="tab-int" onclick="switchMode('int')">International (8x8)</button>
+                </div>
+                <div id="status-bar" class="status-bar">White to move</div>
+                <div class="board-container">
+                    <div id="board" class="board"></div>
+                </div>
+                <div class="mobile-controls">
+                    <button id="btn-undo" class="btn">Undo Move</button>
+                    <button id="btn-new" class="btn">New Game</button>
+                    <button id="btn-del" class="btn danger">Delete Data</button>
+                    <button id="btn-rules" class="btn icon">?</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="rulesModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="document.getElementById('rulesModal').style.display='none'">&times;</span>
+            <h2 id="ui-rules-title">Rules</h2>
+            <div id="rules-text"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

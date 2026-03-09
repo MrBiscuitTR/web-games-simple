@@ -15,21 +15,22 @@
 body { 
     background-color: var(--bg-dark); 
     color: #fff; 
-    min-height: 100vh;
-    min-height: 100dvh; /* Mobil Safari Bar Fixi */
+    height: 100vh;
+    height: 100dvh; /* iOS Safari Address Bar Fix */
+    width: 100vw;
     display: flex; 
     justify-content: center; 
-    align-items: flex-start; /* İçerik taşarsa üstten kesilmesin */
-    overflow-y: auto; /* Kaydırmaya izin ver! */
-    overflow-x: hidden;
-    padding: 1rem 0;
+    align-items: center; 
+    overflow: hidden; /* Lock scroll to prevent bouncing */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 .app-container { 
     display: flex; 
-    width: 100vw; 
+    width: 100%; 
+    height: 100%;
     max-width: 1400px; 
-    padding: 0 1rem; 
+    padding: 1rem; 
     gap: 1rem; 
     flex-direction: row; 
     align-items: stretch;
@@ -135,9 +136,10 @@ details.mobile-details summary { display: none; }
     .board-container { order: 2; min-height: 50vh; }
     .right-panel { order: 3; }
     .panel { width: 100%; height: auto; }
+    .tavla-board { max-height: 70vh; } /* Squashes the board vertically on iPads */
 }
 
-/* MOBİL (TELEFONLAR) */
+/* MOBIL (TELEFONLAR) */
 @media (max-width: 768px) {
     .app-container { padding: 0.5rem; gap: 0.5rem; }
     .tavla-board { border-width: 8px; min-height: 45vh; }
@@ -170,4 +172,43 @@ details.mobile-details summary { display: none; }
     
     .panel h2 { display: none; } /* Kalabalık yapmaması için panel başlıklarını gizle */
     .rules-btn { position: fixed; bottom: 15px; right: 15px; z-index: 50; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+}
+
+
+/* GLOBAL HUB BUTTON */
+.global-hub-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    text-decoration: none;
+    font-size: 1.5rem;
+    min-width: 44px; /* Touch friendly width */
+    height: 44px;
+    border-radius: 8px;
+    transition: transform 0.2s, background 0.2s;
+    flex-shrink: 0;
+}
+.global-hub-btn:active {
+    transform: scale(0.9);
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Ensure mobile-flex-row works beautifully with the new button */
+.mobile-flex-row { display: flex; width: 100%; gap: 10px; margin-bottom: 10px; align-items: stretch; }
+.mobile-flex-row button { flex: 1; margin: 0; padding: 12px 5px; }
+
+.landscape-warning {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: var(--bg-dark); z-index: 9999;
+    justify-content: center; align-items: center; text-align: center; padding: 20px;
+}
+.landscape-warning h2 { color: #e74c3c; margin-bottom: 15px; font-size: 2rem; }
+.landscape-warning p { font-size: 1.2rem; }
+
+/* Trigger warning only on mobile phones in landscape */
+@media (max-width: 850px) and (orientation: landscape) {
+    .landscape-warning { display: flex; }
+    .app-container { display: none; }
 }

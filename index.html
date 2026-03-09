@@ -1,22 +1,25 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oyun Merkezi | Çağan Çalıdağ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Game Hub | Çağan Çalıdağ</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
-        :root {
-            --bg-color: #1a1a2e;
-            --card-bg: #16213e;
-            --text-color: #e94560;
-            --text-light: #fff;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-light); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2rem; }
+        :root { --bg-color: #1a1a2e; --card-bg: #16213e; --text-color: #e94560; --text-light: #fff; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-light); min-height: 100dvh; display: flex; flex-direction: column; align-items: center; padding: 2rem; }
+        .top-bar { width: 100%; max-width: 1000px; display: flex; justify-content: flex-end; margin-bottom: 1rem; }
+        select { padding: 5px 10px; border-radius: 5px; background: var(--card-bg); color: #fff; border: 1px solid var(--text-color); font-size: 1rem; outline: none; }
         header { text-align: center; margin-bottom: 3rem; }
         header h1 { font-size: 2.5rem; color: var(--text-color); margin-bottom: 0.5rem; }
         .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; width: 100%; max-width: 1000px; }
-        .game-card { background-color: var(--card-bg); border-radius: 12px; padding: 2rem; text-align: center; text-decoration: none; color: inherit; transition: transform 0.3s, box-shadow 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .game-card { background-color: var(--card-bg); border-radius: 12px; padding: 2rem; text-align: center; text-decoration: none; color: inherit; transition: transform 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
         .game-card:hover { transform: translateY(-5px); box-shadow: 0 8px 15px rgba(233, 69, 96, 0.4); }
         .game-card h2 { font-size: 1.8rem; margin-bottom: 1rem; color: var(--text-color); }
         .game-card p { font-size: 1rem; opacity: 0.8; }
@@ -24,26 +27,49 @@
     </style>
 </head>
 <body>
+    <div class="top-bar">
+        <select id="langPicker">
+            <option value="en">🌐 English</option>
+            <option value="tr">🌐 Türkçe</option>
+        </select>
+    </div>
     <header>
-        <h1>Oyun Merkezi</h1>
-        <p>Klasik oyunların modern web uyarlamaları</p>
+        <h1 id="hubTitle">Game Hub</h1>
+        <p id="hubSubtitle">Modern web adaptations of classic games</p>
     </header>
     <div class="grid-container">
         <a href="tavla/index.html" class="game-card">
-            <div class="game-icon">🎲</div>
-            <h2>Tavla</h2>
-            <p>Erkek ve Kız Tavlası. Çevrimdışı, 2 kişilik.</p>
+            <div class="game-icon">🎲</div><h2>Tavla</h2><p id="descTavla">Backgammon. Offline, 2 players. (TR Only)</p>
         </a>
-        <a href="#" class="game-card" style="opacity: 0.6; cursor: not-allowed;">
-            <div class="game-icon">♟️</div>
-            <h2>Satranç</h2>
-            <p>Çok yakında...</p>
+        <a href="casus-kim/index.html" class="game-card">
+            <div class="game-icon">🕵️</div><h2 id="titleSpy">Casus Kim?</h2><p id="descSpy">Pass-the-phone social deduction game.</p>
         </a>
-        <a href="#" class="game-card" style="opacity: 0.6; cursor: not-allowed;">
-            <div class="game-icon">🏁</div>
-            <h2>Dama</h2>
-            <p>Çok yakında...</p>
+        <a href="chess/index.html" class="game-card">
+            <div class="game-icon">♟️</div><h2 id="titleChess">Chess</h2><p id="descChess">Classic 8x8 Chess. 2 players.</p>
+        </a>
+        <a href="dama/index.html" class="game-card">
+            <div class="game-icon">🏁</div><h2 id="titleDama">Checkers</h2><p id="descDama">Turkish & International Checkers.</p>
+        </a>
+        <a href="uno/index.html" class="game-card">
+            <div class="game-icon">🃏</div><h2 id="titleUno">UNO</h2><p id="descUno">Pass-the-phone card game. 2-6 players.</p>
         </a>
     </div>
+
+    <script>
+        const dict = {
+            en: { hubTitle: "Game Hub", hubSubtitle: "Modern web adaptations of classic games", descTavla: "Backgammon. Offline, 2 players. (TR Only)", titleSpy: "Spyfall", descSpy: "Pass-the-phone social deduction game. Find the spy!", titleChess: "Chess", descChess: "Classic 8x8 Chess. 2 players.", titleDama: "Checkers", descDama: "Turkish & International Checkers.", titleUno: "UNO", descUno: "Pass-the-phone card game. 2-6 players." },
+            tr: { hubTitle: "Oyun Merkezi", hubSubtitle: "Klasik oyunların modern web uyarlamaları", descTavla: "Erkek ve Kız Tavlası. Çevrimdışı, 2 kişilik.", titleSpy: "Casus Kim?", descSpy: "Cihazı elden ele gezdirerek oynanan sosyal çıkarım oyunu.", titleChess: "Satranç", descChess: "Klasik 8x8 Satranç. 2 kişilik.", titleDama: "Dama", descDama: "Türk Daması ve Uluslararası Dama.", titleUno: "UNO", descUno: "Cihazı devrederek oynanan kart oyunu. 2-6 oyuncu." }
+        };
+        const langPicker = document.getElementById('langPicker');
+        function setLang(lang) {
+            document.documentElement.lang = lang;
+            Object.keys(dict[lang]).forEach(k => { const el = document.getElementById(k); if(el) el.innerText = dict[lang][k]; });
+            localStorage.setItem('hubLang', lang);
+        }
+        langPicker.addEventListener('change', (e) => setLang(e.target.value));
+        const savedLang = localStorage.getItem('hubLang') || 'en';
+        langPicker.value = savedLang;
+        setLang(savedLang);
+    </script>
 </body>
 </html>

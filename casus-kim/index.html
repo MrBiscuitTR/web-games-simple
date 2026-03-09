@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Casus Kim? | Spyfall</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="header-left">
+                <a href="/" class="global-hub-btn" aria-label="Back to Hub">🏠</a>
+                <h1 id="ui-title">🕵️ Casus Kim?</h1>
+            </div>
+            <select id="langPicker">
+                <option value="en">English</option>
+                <option value="tr">Türkçe</option>
+            </select>
+        </header>
+
+        <div id="setupScreen" class="screen active">
+            <div class="card">
+                <div class="control-group">
+                    <label id="ui-players-label">Players</label>
+                    <div class="stepper">
+                        <button onclick="updateSettings('players', -1)">-</button>
+                        <span id="val-players">5</span>
+                        <button onclick="updateSettings('players', 1)">+</button>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label id="ui-spies-label">Spies</label>
+                    <div class="stepper">
+                        <button onclick="updateSettings('spies', -1)">-</button>
+                        <span id="val-spies">1</span>
+                        <button onclick="updateSettings('spies', 1)">+</button>
+                    </div>
+                    <small id="ui-spy-limit" class="warning-text"></small>
+                </div>
+                <div class="control-group">
+                    <label id="ui-timer-label">Round Timer</label>
+                    <div class="stepper">
+                        <button onclick="updateSettings('timer', -10)">-</button>
+                        <span id="val-timer">04:00</span>
+                        <button onclick="updateSettings('timer', 10)">+</button>
+                    </div>
+                </div>
+                <button id="btn-start" class="btn-primary" onclick="initGame()">Start Game</button>
+            </div>
+            
+            <div class="bottom-controls">
+                <button id="btn-rules" class="icon-btn" onclick="openRules()">?</button>
+                <button id="btn-delete-db" class="btn-danger" onclick="resetIndexedDB()">Delete Game Data</button>
+            </div>
+        </div>
+
+        <div id="revealScreen" class="screen">
+            <div class="card center-content">
+                <h2 id="reveal-player-title">Player 1</h2>
+                
+                <div id="reveal-hidden-state">
+                    <p id="ui-tap-reveal">Tap to reveal your role</p>
+                    <button id="btn-show-role" class="btn-primary" onclick="showRole()">Show Role</button>
+                </div>
+
+                <div id="reveal-shown-state" style="display: none;">
+                    <div id="role-display-box" class="role-box">
+                        <h3 id="role-location">📍 Location: Paris</h3>
+                        <h3 id="role-name">🎭 Role: Villager</h3>
+                    </div>
+                    <button id="btn-hide-role" class="btn-secondary" onclick="hideRole()">Hide and Pass Phone</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="discussionScreen" class="screen">
+            <div class="card center-content">
+                <h2 id="ui-round-started">Round Started</h2>
+                <div id="discussion-timer" class="timer-display">04:00</div>
+                
+                <div class="action-buttons">
+                    <button id="btn-spy-guess" class="btn-danger" onclick="spyGuess()">Spy Guess</button>
+                    <button id="btn-end-round" class="btn-secondary" onclick="endRound()">End Round</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="rulesModal" class="modal">
+        <div class="modal-content card">
+            <span class="close-btn" onclick="closeRules()">&times;</span>
+            <h2 id="ui-rules-title">Rules</h2>
+            <div id="rules-text" class="rules-text"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

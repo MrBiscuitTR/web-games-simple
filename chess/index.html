@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chess | Satranç</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta name="mobile-web-app-capable" content="yes">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="header-left">
+                <a href="/" class="global-hub-btn">🏠</a>
+                <h1 id="ui-title">Chess</h1>
+            </div>
+            <select id="langPicker"><option value="en">English</option><option value="tr">Türkçe</option></select>
+        </header>
+
+        <div class="game-layout">
+            <div class="board-area">
+                <div id="status-bar" class="status-bar">White to move</div>
+                <div class="chessboard-container">
+                    <div id="board" class="chessboard"></div>
+                </div>
+                <div class="mobile-controls">
+                    <button id="btn-undo" class="btn">Undo Move</button>
+                    <button id="btn-new" class="btn">New Game</button>
+                    <button id="btn-del" class="btn danger">Delete Data</button>
+                    <button id="btn-rules" class="btn icon">?</button>
+                </div>
+            </div>
+            <div class="history-area">
+                <h2 id="ui-history">Move History</h2>
+                <div id="history-log" class="history-log"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="promoModal" class="modal">
+        <div class="modal-content">
+            <h2 id="ui-promo-title">Promote Pawn</h2>
+            <div class="promo-pieces" id="promo-options"></div>
+        </div>
+    </div>
+
+    <div id="rulesModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="document.getElementById('rulesModal').style.display='none'">&times;</span>
+            <h2 id="ui-rules-title">Rules</h2>
+            <div id="rules-text"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
