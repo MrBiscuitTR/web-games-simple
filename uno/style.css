@@ -21,6 +21,10 @@ select { background: var(--card-bg); color: #fff; padding: 5px; border-radius: 5
 .btn.small { width: auto; padding: 10px 15px; font-size: 1rem; }
 .btn.icon { flex-shrink: 0; width: auto; padding: 10px 15px; }
 
+#btn-show-cards{
+    margin: 20px;
+}
+
 /* Collapsible */
 details.mobile-details { width: 100%; background: var(--card-bg); border-radius: 8px; flex-shrink: 0;}
 details.mobile-details summary { padding: 12px; font-weight: bold; text-align: center; cursor: pointer; outline: none; list-style: none; }

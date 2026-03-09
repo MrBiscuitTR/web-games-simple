@@ -1,6 +1,6 @@
 const DICT = {
     en: { 
-        setup: "Setup Game", players: "Players: ", start: "Start", del: "Delete Data", pTurn: "Player {n} Turn", 
+        setup: "Setup Game", players: "Players: ", start: "Start", del: "Delete Data", newGame: "New Game", pTurn: "Player {n} Turn", 
         showCards: "Tap to show cards", endTurn: "End Turn", passPhone: "Pass Phone", rulesTitle: "Rules", win: "Player {n} Wins!", 
         menu: "Menu", forgot: "Forgot UNO! Drew 2 cards.", undo: "Undo", drawBtn: "+ Draw",
         rules: `
@@ -21,7 +21,7 @@ const DICT = {
             </ul>`
     },
     tr: { 
-        setup: "Oyunu Kur", players: "Oyuncular: ", start: "Başlat", del: "Verileri Sil", pTurn: "Oyuncu {n} Sırası", 
+        setup: "Oyunu Kur", players: "Oyuncular: ", start: "Başlat", del: "Verileri Sil", newGame: "Yeni Oyun", pTurn: "Oyuncu {n} Sırası", 
         showCards: "Kartları gör", endTurn: "Turu Bitir", passPhone: "Telefonu Devret", rulesTitle: "Kurallar", win: "Oyuncu {n} Kazandı!", 
         menu: "Menü", forgot: "UNO demeyi unuttun! 2 kart çektin.", undo: "Geri Al", drawBtn: "+ Çek",
         rules: `
@@ -125,7 +125,7 @@ function undoPlay() {
     if(turnSnapshot) {
         state = JSON.parse(turnSnapshot);
         turnSnapshot = null; 
-        saveState(); // Commit the undone state immediately
+        saveState(); 
         
         document.getElementById('btn-undo').style.display = 'none';
         document.getElementById('btn-draw').style.display = state.hasDrawn ? 'none' : 'block';
@@ -142,7 +142,6 @@ function playCard(idx) {
     let hand = state.hands[state.turn], c = hand[idx], top = state.discard[state.discard.length-1];
     
     if(c.c === top.c || c.v === top.v) {
-        // Save snapshot BEFORE executing move
         turnSnapshot = JSON.stringify(state);
 
         state.discard.push(hand.splice(idx,1)[0]);
@@ -161,10 +160,10 @@ function playCard(idx) {
             let next1 = (state.turn + state.dir + s.pCount) % s.pCount;
             reshuffle(); if(state.deck.length>0) state.hands[next1].push(state.deck.pop()); 
             reshuffle(); if(state.deck.length>0) state.hands[next1].push(state.deck.pop());
-            turnSnapshot = null; // NO UNDO ALLOWED ON +2 CARDS (RNG LOCK)
+            turnSnapshot = null; // Lock Undo for +2
         }
         
-        saveState(); // Commit to DB to prevent refresh-scumming
+        saveState(); 
         
         document.getElementById('btn-undo').style.display = turnSnapshot ? 'block' : 'none';
         document.getElementById('btn-draw').style.display = 'none';
@@ -180,7 +179,7 @@ function drawCard() {
     if(state.deck.length > 0) state.hands[state.turn].push(state.deck.pop());
     state.hasDrawn = true;
     
-    saveState(); // Commit draw to DB to prevent refresh-scumming
+    saveState(); 
     
     document.getElementById('btn-draw').style.display = 'none';
     document.getElementById('btn-end-turn').style.display = 'block';
@@ -212,8 +211,18 @@ function switchScreen(id) { document.querySelectorAll('.screen').forEach(el=>el.
 
 function updateUI() {
     let d = DICT[lang]; document.documentElement.lang = lang;
-    document.getElementById('ui-setup').innerText = d.setup; document.getElementById('ui-players').innerText = d.players;
-    document.getElementById('btn-start').innerText = d.start; document.getElementById('btn-del').innerText = d.del;
+    
+    document.getElementById('ui-setup').innerText = d.setup; 
+    document.getElementById('ui-players').innerText = d.players;
+    document.getElementById('btn-start').innerText = d.start; 
+    document.getElementById('btn-del-setup').innerText = d.del;
+    
+    document.getElementById('btn-new-pass').innerText = d.newGame;
+    document.getElementById('btn-del-pass').innerText = d.del;
+    
+    document.getElementById('btn-new-game').innerText = d.newGame;
+    document.getElementById('btn-del-game').innerText = d.del;
+    
     if(state) document.getElementById('ui-pass-msg').innerText = d.pTurn.replace('{n}', state.turn+1);
     document.getElementById('btn-show-cards').innerText = d.showCards; 
     document.getElementById('ui-rules-title').innerText = d.rulesTitle; document.getElementById('rules-text').innerHTML = d.rules;

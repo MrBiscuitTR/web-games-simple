@@ -28,7 +28,7 @@
                 <button onclick="changeP(1)">+</button>
             </div>
             <button id="btn-start" class="btn" onclick="initGame()">Start</button>
-            <button id="btn-del" class="btn danger" onclick="resetDB()" style="margin-top:10px">Delete Data</button>
+            <button id="btn-del-setup" class="btn danger" onclick="resetDB()" style="margin-top:10px">Delete Data</button>
             <button class="btn icon" onclick="document.getElementById('rulesModal').style.display='flex'" style="margin-top:10px">?</button>
         </div>
 
@@ -39,7 +39,8 @@
             <details class="mobile-details" style="margin-top: 2rem; width: 100%;">
                 <summary id="ui-game-menu-pass">Game Menu</summary>
                 <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 10px;">
-                    <button class="btn danger" onclick="resetGame()">New Game</button>
+                    <button id="btn-new-pass" class="btn" onclick="resetGame()">New Game</button>
+                    <button id="btn-del-pass" class="btn danger" onclick="resetDB()">Delete Data</button>
                 </div>
             </details>
         </div>
@@ -47,8 +48,9 @@
         <div id="screen-game" class="screen">
             <details class="mobile-details" style="margin-bottom: 10px;">
                 <summary id="ui-game-menu">Game Menu</summary>
-                <div style="margin-top: 10px; display: flex; gap: 10px;">
-                    <button class="btn danger" onclick="resetGame()">New Game</button>
+                <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 10px;">
+                    <button id="btn-new-game" class="btn" style="flex: 1;" onclick="resetGame()">New Game</button>
+                    <button id="btn-del-game" class="btn danger" style="flex: 1;" onclick="resetDB()">Delete Data</button>
                     <button class="btn icon" onclick="document.getElementById('rulesModal').style.display='flex'">?</button>
                 </div>
             </details>
@@ -62,7 +64,7 @@
                 <span id="ui-turn-info" style="flex:1">Player 1</span>
                 <div style="display: flex; gap: 10px;">
                     <button id="btn-undo" class="btn small" style="background:#f39c12; display:none;" onclick="undoPlay()">Undo</button>
-                    <button id="btn-draw" class="btn primary small" onclick="drawCard()">+ 🃏</button>
+                    <button id="btn-draw" class="btn small" onclick="drawCard()">+ 🃏</button>
                     <button id="btn-uno" class="btn danger small" onclick="callUno()">UNO!</button>
                 </div>
             </div>
