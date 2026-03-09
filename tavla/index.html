@@ -30,6 +30,22 @@
             </div>
             
             <div class="tavla-board" id="board">
+                <svg class="direction-arrows" viewBox="0 0 1000 600" preserveAspectRatio="none">
+                    <defs>
+                        <marker id="arrowWhite" viewBox="0 0 15 15" refX="10" refY="7.5" markerWidth="6" markerHeight="6" orient="auto">
+                            <path d="M 0 0 L 15 7.5 L 0 15 z" fill="rgba(249, 249, 249, 0.45)" />
+                        </marker>
+                        <marker id="arrowBlack" viewBox="0 0 15 15" refX="10" refY="7.5" markerWidth="6" markerHeight="6" orient="auto">
+                            <path d="M 0 0 L 15 7.5 L 0 15 z" fill="rgba(34, 34, 34, 0.45)" />
+                        </marker>
+                    </defs>
+                    <path d="M 850 160 L 150 160 Q 100 160 100 300 Q 100 440 150 440 L 850 440" 
+                          fill="none" stroke="rgba(249, 249, 249, 0.35)" stroke-width="12" stroke-dasharray="20, 15" marker-end="url(#arrowWhite)"/>
+                    
+                    <path d="M 850 480 L 80 480 Q 30 480 30 300 Q 30 120 80 120 L 850 120" 
+                          fill="none" stroke="rgba(34, 34, 34, 0.35)" stroke-width="12" stroke-dasharray="20, 15" marker-end="url(#arrowBlack)"/>
+                </svg>
+
                 <div class="board-half left-half">
                     <div class="row top-row" id="quad-tl"></div>
                     <div class="row bottom-row" id="quad-bl"></div>
@@ -71,17 +87,16 @@
                 <h3>Erkek Tavlası</h3>
                 <ul>
                     <li><strong>Hedef:</strong> Tüm pulları kendi evine getirip toplamak.</li>
-                    <li><strong>Zarlar:</strong> İki zar atılır. Gelen sayılar kadar hamle yapılır. Çift gelirse (örn. 4-4), o sayı 4 kez oynanır.</li>
-                    <li><strong>Kırmak:</strong> Rakibin tek pulunun (blot) olduğu haneye gelirseniz onu kırarsınız. Kırılan pul 'Bar'a gider.</li>
-                    <li><strong>Bar:</strong> Barda pulunuz varsa, oyuna oradan girmek zorundasınız. Girmeden başka hamle yapılamaz.</li>
-                    <li><strong>Kapı:</strong> Bir hanede 2 veya daha fazla rakip pul varsa oraya inemezsiniz.</li>
-                    <li><strong>Mars:</strong> Siz tüm pulları topladığınızda rakip hiç pul toplayamadıysa 2 puan alırsınız (Mars). Rakibin pulu sizin evinizde veya barda kaldıysa Katmerli Mars (3 puan) olur. Normal kazanç 1 puandır.</li>
+                    <li><strong>Zarlar:</strong> İki zar atılır. Gelen sayılar kadar hamle yapılır. Çift gelirse 4 kez oynanır.</li>
+                    <li><strong>Kırmak:</strong> Rakibin tek pulunun (blot) olduğu haneye inerseniz onu kırarsınız.</li>
+                    <li><strong>Bar:</strong> Barda pulunuz varsa oradan girmeden hamle yapamazsınız.</li>
+                    <li><strong>Kapı:</strong> 2 veya daha fazla rakip pul varsa kırılamaz, inilemez.</li>
+                    <li><strong>Mars:</strong> Tüm pulları toplayıp rakibe toplatmazsanız 2 puan, rakibin pulu evinizde veya barda kalırsa Katmerli Mars (3 puan). Normal kazanç 1 puandır.</li>
                 </ul>
                 <h3>Kız Tavlası</h3>
                 <ul>
                     <li>Erkek tavlasından farklı olarak <strong>Kırma Yoktur</strong> ve <strong>Kapı Alma Yoktur</strong>.</li>
-                    <li>İstediğiniz haneye inebilirsiniz. Oyun tamamen bir yarış oyununa dönüşür.</li>
-                    <li>Pullarınızı en hızlı şekilde toplayan kazanır.</li>
+                    <li>İstediğiniz haneye inebilirsiniz. Hızlı toplayan kazanır.</li>
                 </ul>
             </div>
         </div>

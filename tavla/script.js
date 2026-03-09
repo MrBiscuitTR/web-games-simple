@@ -6,16 +6,16 @@
 
 // --- STATE MANAGEMENT ---
 let gameState = {
-    mode: 'erkek', // 'erkek' veya 'kiz'
-    turn: 1,       // 1 (Beyaz) veya 2 (Siyah)
-    board: Array(25).fill(null), // 1-24 haneler. Index 0 kullanılmaz.
-    bar: { 1: 0, 2: 0 },         // Kırık pullar
-    bearOff: { 1: 0, 2: 0 },     // Toplanan pullar
-    dice: [],                    // Atılan zarlar [örn: 3, 5]
-    movesLeft: [],               // Oynanacak kalan zarlar
-    history: [],                 // Geri al (Undo) için state kopyaları
+    mode: 'erkek', 
+    turn: 1,       
+    board: Array(25).fill(null).map(() => ({ 1: 0, 2: 0 })), 
+    bar: { 1: 0, 2: 0 },         
+    bearOff: { 1: 0, 2: 0 },     
+    dice: [],                    
+    movesLeft: [],               
+    history: [],                 
     scores: { 1: 0, 2: 0 },
-    moveLog: []                  // Metin geçmişi
+    moveLog: []                  
 };
 
 let selectedPoint = null;
@@ -68,7 +68,6 @@ function switchMode(mode) {
 // --- GAME LOGIC ---
 
 function initBoard() {
-    // YENİ VERİ YAPISI: Her hane her iki oyuncunun da pul sayısını ayrı ayrı tutar.
     gameState.board = Array(25).fill(null).map(() => ({ 1: 0, 2: 0 }));
     gameState.bar = { 1: 0, 2: 0 };
     gameState.bearOff = { 1: 0, 2: 0 };
@@ -152,7 +151,7 @@ function calculateLegalMoves(startPointStr) {
     } else {
         if (startPointStr.startsWith('bar')) return [];
         startIdx = parseInt(startPointStr);
-        if (gameState.board[startIdx][p] === 0) return []; // Kendi pulu yok
+        if (gameState.board[startIdx][p] === 0) return []; 
     }
 
     const direction = p === 1 ? -1 : 1;
@@ -180,13 +179,11 @@ function isValidDestination(idx, player) {
     const dest = gameState.board[idx];
     let opp = player === 1 ? 2 : 1;
     
-    // Kız Tavlası: Her yere inilebilir (Kapı alma yok, pullar yan yana durabilir)
     if (gameState.mode === 'kiz') return true;
 
-    // Erkek Tavlası:
-    if (dest[opp] === 0) return true; // Hane boş veya sadece kendi pulumuz var
-    if (dest[opp] === 1) return true; // Kırma (Rakibin tek pulu var)
-    if (dest[opp] >= 2) return false; // Kapı (Rakibin 2 veya daha fazla pulu var - KESİNLİKLE KIRILAMAZ)
+    if (dest[opp] === 0) return true; 
+    if (dest[opp] === 1) return true; 
+    if (dest[opp] >= 2) return false; 
 
     return false;
 }
@@ -210,7 +207,6 @@ function handlePointClick(pointId) {
 
     let p = gameState.turn;
 
-    // 1. ÖNCE KONTROL: Hamle yapılıyorsa yap ve çık
     if (selectedPoint) {
         let legalMoves = calculateLegalMoves(selectedPoint);
         if (legalMoves.includes(pointId)) {
@@ -219,7 +215,6 @@ function handlePointClick(pointId) {
         }
     }
 
-    // 2. HAMLE DEĞİLSE: Yeni pul seçimi
     let isOwnChecker = false;
     
     if (pointId.startsWith('bar') && gameState.bar[p] > 0 && pointId === `bar-${p}`) {
@@ -253,28 +248,25 @@ function moveChecker(startStr, endStr) {
     }
     if(usedDieIndex === -1) usedDieIndex = 0; 
     
-    let playedDie = gameState.movesLeft.splice(usedDieIndex, 1)[0];
+    gameState.movesLeft.splice(usedDieIndex, 1)[0];
 
-    // Kaynaktan çıkar
     if (startStr.startsWith('bar')) {
         gameState.bar[p]--;
     } else {
         gameState.board[startIdx][p]--;
     }
 
-    // Hedefe ekle (veya vur veya topla)
     if (endStr.startsWith('off')) {
         bearOff(p);
     } else {
         let dest = gameState.board[endIdx];
         let opp = p === 1 ? 2 : 1;
 
-        // SADECE Erkek tavlasında ve SADECE rakibin tek pulu varsa kırılır
         if (gameState.mode === 'erkek' && dest[opp] === 1) {
-            hitChecker(opp);
-            dest[opp] = 0; // Kırılan pulu tahtadan sil
+            hitChecker(opp); 
+            dest[opp] = 0;   
         }
-        dest[p]++; // Kendi pulunu ekle
+        dest[p]++; 
     }
 
     logMove(`Oyuncu ${p}: ${startStr.replace('bar-','Bar ').replace('off-','Toplama')} -> ${endIdx}`);
@@ -288,7 +280,7 @@ function moveChecker(startStr, endStr) {
 }
 
 function hitChecker(oppPlayer) {
-    gameState.bar[oppPlayer]++;
+    gameState.bar[oppPlayer]++; 
 }
 
 function bearOff(player) {
@@ -393,8 +385,13 @@ function renderBoard() {
             pointDiv.className = `point ${(indices.indexOf(idx) % 2 === 0) ? 'dark' : 'light'}`;
             if (legalMoves.includes(idx.toString())) pointDiv.classList.add('highlight');
             
-            pointDiv.onclick = () => handlePointClick(idx.toString());
+            // YENİ: Hanenin numarasını ekle (Görsel Yardım)
+            const numSpan = document.createElement('span');
+            numSpan.className = 'point-number';
+            numSpan.innerText = idx;
+            pointDiv.appendChild(numSpan);
 
+            pointDiv.onclick = () => handlePointClick(idx.toString());
             pointDiv.ondragover = (e) => e.preventDefault();
             pointDiv.ondrop = (e) => { e.preventDefault(); handlePointClick(idx.toString()); };
 
@@ -403,7 +400,6 @@ function renderBoard() {
             const checkerContainer = document.createElement('div');
             checkerContainer.className = 'checker-container';
 
-            // Her iki oyuncunun pullarını da render et (Kız Tavlasında aynı hanede birikebilirler)
             [1, 2].forEach(playerNum => {
                 if (cellData[playerNum] > 0) {
                     hasCheckers = true;
@@ -419,6 +415,10 @@ function renderBoard() {
                             checker.draggable = true;
                             checker.ondragstart = (e) => { selectedPoint = idx.toString(); renderAll(); };
                         }
+                        
+                        checker.ondragover = (e) => e.preventDefault();
+                        checker.ondrop = (e) => { e.preventDefault(); e.stopPropagation(); handlePointClick(idx.toString()); };
+                        
                         checkerContainer.appendChild(checker);
                     }
                 }
@@ -523,8 +523,20 @@ function loadGameState() {
         const tx = db.transaction('saves', 'readonly');
         const req = tx.objectStore('saves').get('current');
         req.onsuccess = () => {
-            if (req.result) resolve(JSON.parse(req.result.state));
-            else resolve(null);
+            if (req.result) {
+                try {
+                    let state = JSON.parse(req.result.state);
+                    if (state.board && state.board[1] && state.board[1].count !== undefined) {
+                        resolve(null);
+                    } else {
+                        resolve(state);
+                    }
+                } catch(e) {
+                    resolve(null);
+                }
+            } else {
+                resolve(null);
+            }
         };
     });
 }

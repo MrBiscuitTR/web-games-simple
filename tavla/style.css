@@ -44,10 +44,10 @@ button { padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-
 .dice-display { display: flex; gap: 10px; min-width: 80px; justify-content: center; font-size: 2rem;}
 
 /* Oyun Tahtası */
-.tavla-board { flex: 1; background-color: var(--wood-bg); border: 15px solid var(--wood-border); border-radius: 10px; display: flex; position: relative; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
-.board-half { flex: 1; display: flex; flex-direction: column; }
-.board-bar { width: 40px; background-color: var(--wood-border); border-left: 2px solid #2a1106; border-right: 2px solid #2a1106; display: flex; flex-direction: column; }
-.bear-off-zone { width: 60px; background-color: #8c6a43; border-left: 5px solid var(--wood-border); display: flex; flex-direction: column; }
+.tavla-board { flex: 1; background-color: var(--wood-bg); border: 15px solid var(--wood-border); border-radius: 10px; display: flex; position: relative; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); overflow: hidden;}
+.board-half { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 2; }
+.board-bar { width: 40px; background-color: var(--wood-border); border-left: 2px solid #2a1106; border-right: 2px solid #2a1106; display: flex; flex-direction: column; position: relative; z-index: 2;}
+.bear-off-zone { width: 60px; background-color: #8c6a43; border-left: 5px solid var(--wood-border); display: flex; flex-direction: column; position: relative; z-index: 2;}
 
 .row { flex: 1; display: flex; position: relative; }
 .top-row { flex-direction: row; }
@@ -73,7 +73,7 @@ button { padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-
 .bottom-row .checker-container { justify-content: flex-end; }
 .top-row .checker-container { justify-content: flex-start; }
 
-.checker { width: 80%; aspect-ratio: 1; border-radius: 50%; box-shadow: 0 3px 5px rgba(0,0,0,0.5), inset 0 0 5px rgba(255,255,255,0.2); border: 2px solid rgba(0,0,0,0.2); position: relative; pointer-events: auto; cursor: grab; margin: -5% 0; /* Stack overlap if many */ transition: transform 0.2s; }
+.checker { width: 80%; aspect-ratio: 1; border-radius: 50%; box-shadow: 0 3px 5px rgba(0,0,0,0.5), inset 0 0 5px rgba(255,255,255,0.2); border: 2px solid rgba(0,0,0,0.2); position: relative; pointer-events: auto; cursor: grab; margin: -5% 0; transition: transform 0.2s; }
 .checker:active { cursor: grabbing; }
 .checker.p1 { background-color: var(--p1-piece); }
 .checker.p2 { background-color: var(--p2-piece); }
@@ -103,3 +103,30 @@ button { padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-
     .history-log { max-height: 100px; width: 100%; }
     .rules-btn { position: static; }
 }
+
+/* ========================================= */
+/* YENİ: Oklar ve Hanelerin Numaraları       */
+/* ========================================= */
+
+.direction-arrows {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 1; /* Pulların arkasında, tahtanın üstünde */
+}
+
+.point-number {
+    position: absolute;
+    font-size: 11px;
+    font-weight: bold;
+    z-index: 2; /* Rakamlar pulların arkasında ama zemin üstünde */
+    pointer-events: none;
+}
+
+.top-row .point-number { top: 3px; }
+.bottom-row .point-number { bottom: 3px; }
+
+/* Renk kontrastı - koyu zemine açık, açık zemine koyu rakam */
+.point.dark .point-number { color: rgba(255, 255, 255, 0.6); }
+.point.light .point-number { color: rgba(0, 0, 0, 0.5); }
