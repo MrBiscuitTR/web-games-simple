@@ -8,7 +8,6 @@
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" href="/favicon.png">
-    <meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>
     <div class="app-container">
@@ -20,24 +19,27 @@
             <select id="langPicker"><option value="en">English</option><option value="tr">Türkçe</option></select>
         </header>
 
-        <div class="game-layout">
-            <div class="board-area">
-                <div id="status-bar" class="status-bar">White to move</div>
-                <div class="chessboard-container">
-                    <div id="board" class="chessboard"></div>
-                </div>
-                <div class="mobile-controls">
-                    <button id="btn-undo" class="btn">Undo Move</button>
-                    <button id="btn-new" class="btn">New Game</button>
-                    <button id="btn-del" class="btn danger">Delete Data</button>
-                    <button id="btn-rules" class="btn icon">?</button>
-                </div>
+        <details class="mobile-details" id="settingsDetails">
+            <summary id="ui-controls">Controls & Settings</summary>
+            <div class="control-panel">
+                <button id="btn-undo" class="btn">Undo Move</button>
+                <button id="btn-new" class="btn">New Game</button>
+                <button id="btn-del" class="btn danger">Delete Data</button>
+                <button id="btn-rules" class="btn icon">?</button>
             </div>
-            <div class="history-area">
-                <h2 id="ui-history">Move History</h2>
-                <div id="history-log" class="history-log"></div>
-            </div>
+        </details>
+
+        <div id="status-bar" class="status-bar">White to move</div>
+        
+        <div class="board-wrapper" style="position: relative;">
+            <div id="board" class="chessboard"></div>
+            <div id="game-over-overlay" class="game-over-overlay"></div>
         </div>
+
+        <details class="mobile-details">
+            <summary id="ui-history">Move History</summary>
+            <div id="history-log" class="history-log"></div>
+        </details>
     </div>
 
     <div id="promoModal" class="modal">
@@ -46,7 +48,6 @@
             <div class="promo-pieces" id="promo-options"></div>
         </div>
     </div>
-
     <div id="rulesModal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="document.getElementById('rulesModal').style.display='none'">&times;</span>
@@ -54,7 +55,6 @@
             <div id="rules-text"></div>
         </div>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>

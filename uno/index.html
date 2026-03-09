@@ -8,7 +8,6 @@
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" href="/favicon.png">
-    <meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>
     <div class="app-container">
@@ -20,41 +19,65 @@
             <select id="langPicker"><option value="en">English</option><option value="tr">Türkçe</option></select>
         </header>
 
-        <div id="screen-setup" class="screen active card">
+        <div id="screen-setup" class="screen active card center">
             <h2 id="ui-setup">Setup Game</h2>
             <div class="stepper">
                 <label id="ui-players">Players: </label>
-                <button onclick="changeP(-1)">-</button><span id="val-p">2</span><button onclick="changeP(1)">+</button>
+                <button onclick="changeP(-1)">-</button>
+                <span id="val-p">2</span>
+                <button onclick="changeP(1)">+</button>
             </div>
-            <div class="tabs"><button class="active">Local Pass-Phone</button><button disabled>Online (Coming Soon)</button></div>
             <button id="btn-start" class="btn" onclick="initGame()">Start</button>
             <button id="btn-del" class="btn danger" onclick="resetDB()" style="margin-top:10px">Delete Data</button>
+            <button class="btn icon" onclick="document.getElementById('rulesModal').style.display='flex'" style="margin-top:10px">?</button>
         </div>
 
         <div id="screen-pass" class="screen card center">
             <h2 id="ui-pass-msg">Player 1 Turn</h2>
             <button id="btn-show-cards" class="btn" onclick="showGame()">Tap to show cards</button>
+            
+            <details class="mobile-details" style="margin-top: 2rem; width: 100%;">
+                <summary id="ui-game-menu-pass">Game Menu</summary>
+                <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 10px;">
+                    <button class="btn danger" onclick="resetGame()">New Game</button>
+                </div>
+            </details>
         </div>
 
         <div id="screen-game" class="screen">
+            <details class="mobile-details" style="margin-bottom: 10px;">
+                <summary id="ui-game-menu">Game Menu</summary>
+                <div style="margin-top: 10px; display: flex; gap: 10px;">
+                    <button class="btn danger" onclick="resetGame()">New Game</button>
+                    <button class="btn icon" onclick="document.getElementById('rulesModal').style.display='flex'">?</button>
+                </div>
+            </details>
+
             <div class="table-area">
-                <div class="deck" onclick="drawCard()"><div class="card-back">UNO</div></div>
+                <div class="deck"><div class="card-back">UNO</div></div>
                 <div id="discard-pile" class="discard"></div>
             </div>
+            
             <div class="status-row">
-                <span id="ui-turn-info">Player 1's Turn</span>
-                <button id="btn-uno" class="btn danger small" onclick="callUno()">UNO!</button>
+                <span id="ui-turn-info" style="flex:1">Player 1</span>
+                <div style="display: flex; gap: 10px;">
+                    <button id="btn-undo" class="btn small" style="background:#f39c12; display:none;" onclick="undoPlay()">Undo</button>
+                    <button id="btn-draw" class="btn primary small" onclick="drawCard()">+ 🃏</button>
+                    <button id="btn-uno" class="btn danger small" onclick="callUno()">UNO!</button>
+                </div>
             </div>
+            
             <div id="player-hand" class="hand-area"></div>
+            
             <button id="btn-end-turn" class="btn" onclick="endTurn()" style="display:none; margin-top:10px">End Turn</button>
         </div>
     </div>
     
-    <button id="btn-rules" class="fab-rules" onclick="document.getElementById('rulesModal').style.display='flex'">?</button>
     <div id="rulesModal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="document.getElementById('rulesModal').style.display='none'">&times;</span>
-            <h2 id="ui-rules-title">Rules</h2><div id="rules-text"></div>
+            <h2 id="ui-rules-title">Rules</h2>
+            <div id="rules-text"></div>
         </div>
     </div>
     <script src="script.js"></script>

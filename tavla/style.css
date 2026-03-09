@@ -207,8 +207,8 @@ details.mobile-details summary { display: none; }
 .landscape-warning h2 { color: #e74c3c; margin-bottom: 15px; font-size: 2rem; }
 .landscape-warning p { font-size: 1.2rem; }
 
-/* Trigger warning only on mobile phones in landscape */
-@media (max-width: 850px) and (orientation: landscape) {
+/* Trigger warning ONLY on mobile phones in landscape (targets small heights) */
+@media (max-width: 950px) and (max-height: 500px) and (orientation: landscape) {
     .landscape-warning { display: flex; }
     .app-container { display: none; }
 }

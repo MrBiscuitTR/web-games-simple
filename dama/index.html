@@ -8,7 +8,6 @@
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" href="/favicon.png">
-    <meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>
     <div class="app-container">
@@ -20,24 +19,29 @@
             <select id="langPicker"><option value="en">English</option><option value="tr">Türkçe</option></select>
         </header>
 
-        <div class="game-layout">
-            <div class="board-area">
+        <details class="mobile-details" id="settingsDetails">
+            <summary id="ui-controls">Settings & Controls</summary>
+            <div class="control-panel">
                 <div class="tabs">
                     <button id="tab-tr" class="active" onclick="switchMode('tr')">Turkish Dama</button>
-                    <button id="tab-int" onclick="switchMode('int')">International (8x8)</button>
+                    <button id="tab-int" onclick="switchMode('int')">International</button>
                 </div>
-                <div id="status-bar" class="status-bar">White to move</div>
-                <div class="board-container">
-                    <div id="board" class="board"></div>
-                </div>
-                <div class="mobile-controls">
+                <div style="display:flex; gap:10px; width:100%;">
                     <button id="btn-undo" class="btn">Undo Move</button>
                     <button id="btn-new" class="btn">New Game</button>
                     <button id="btn-del" class="btn danger">Delete Data</button>
-                    <button id="btn-rules" class="btn icon">?</button>
                 </div>
             </div>
+        </details>
+
+        <div id="status-bar" class="status-bar">White to move</div>
+        
+        <div class="board-wrapper" style="position: relative;">
+            <div id="board" class="board"></div>
+            <div id="game-over-overlay" class="game-over-overlay"></div>
         </div>
+        
+        <button id="btn-rules" class="fab-rules" onclick="document.getElementById('rulesModal').style.display='flex'">?</button>
     </div>
 
     <div id="rulesModal" class="modal">
@@ -47,7 +51,6 @@
             <div id="rules-text"></div>
         </div>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>
