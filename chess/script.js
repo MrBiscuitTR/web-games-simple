@@ -2,7 +2,15 @@ const DICT = {
     en: { title: "Chess", controls: "Controls", hist: "Move History", pToMove: "to move", white: "White", black: "Black", check: "Check!", mate: "Checkmate!", draw: "Draw", undo: "Undo", new: "New Game", del: "Delete", promo: "Promote Pawn", rulesTitle: "Rules", rules: "<p>Standard 8x8 rules apply. Includes En Passant, Castling, Promotion, Checkmate.</p>", whiteWon: "White Won!", blackWon: "Black Won!" },
     tr: { title: "Satranç", controls: "Kontroller", hist: "Geçmiş", pToMove: "hamlesi", white: "Beyaz", black: "Siyah", check: "Şah!", mate: "Şah Mat!", draw: "Berabere", undo: "Geri Al", new: "Yeni", del: "Sil", promo: "Terfi", rulesTitle: "Kurallar", rules: "<p>Standart 8x8 kuralları geçerlidir. Geçerken alma, Rok, Terfi dahildir.</p>", whiteWon: "Beyaz Kazandı!", blackWon: "Siyah Kazandı!" }
 };
-const P = { k:'♚', q:'♛', r:'♜', b:'♝', n:'♞', p:'♟' };
+// Use \uFE0E (native JS unicode) instead of HTML entities to force text rendering
+const P = { 
+    k: '♚\uFE0E', 
+    q: '♛\uFE0E', 
+    r: '♜\uFE0E', 
+    b: '♝\uFE0E', 
+    n: '♞\uFE0E', 
+    p: '♟\uFE0E' 
+};
 let db, lang = 'en', state = {};
 let selIdx = null, validMoves = [];
 let pendingPromo = null;
