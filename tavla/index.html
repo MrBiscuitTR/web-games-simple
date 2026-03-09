@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Türk Tavlası</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <div class="panel left-panel">
+            <h2>Ayarlar</h2>
+            <div class="mode-selectors">
+                <button id="btnErkek" class="active">Erkek Tavlası</button>
+                <button id="btnKiz">Kız Tavlası</button>
+            </div>
+            <button id="btnNewGame" class="action-btn">Yeni Oyun</button>
+            <button id="btnUndo" class="action-btn" disabled>Hamleyi Geri Al</button>
+            <button id="btnResetDB" class="danger-btn">Tavla Verilerini Sil</button>
+            <div id="rulesIcon" class="rules-btn">?</div>
+        </div>
+
+        <div class="board-container">
+            <div class="status-bar">
+                <div id="turnIndicator">Sıra: Oyuncu 1 (Beyaz)</div>
+                <div id="diceArea">
+                    <button id="btnRoll" class="action-btn highlight">Zar At</button>
+                    <div id="diceDisplay" class="dice-display"></div>
+                </div>
+            </div>
+            
+            <div class="tavla-board" id="board">
+                <div class="board-half left-half">
+                    <div class="row top-row" id="quad-tl"></div>
+                    <div class="row bottom-row" id="quad-bl"></div>
+                </div>
+                
+                <div class="board-bar" id="bar">
+                    <div class="bar-top" id="bar-p1"></div>
+                    <div class="bar-bottom" id="bar-p2"></div>
+                </div>
+                
+                <div class="board-half right-half">
+                    <div class="row top-row" id="quad-tr"></div>
+                    <div class="row bottom-row" id="quad-br"></div>
+                </div>
+
+                <div class="bear-off-zone" id="bear-off">
+                    <div class="bear-off-top" id="off-p2"></div>
+                    <div class="bear-off-bottom" id="off-p1"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel right-panel">
+            <h2>Hamle Geçmişi</h2>
+            <div id="historyLog" class="history-log"></div>
+            <div id="scoreBoard">
+                <p>Skorlar</p>
+                <p>Oyuncu 1: <span id="scoreP1">0</span></p>
+                <p>Oyuncu 2: <span id="scoreP2">0</span></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="rulesModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Tavla Kuralları</h2>
+            <div class="rules-text">
+                <h3>Erkek Tavlası</h3>
+                <ul>
+                    <li><strong>Hedef:</strong> Tüm pulları kendi evine getirip toplamak.</li>
+                    <li><strong>Zarlar:</strong> İki zar atılır. Gelen sayılar kadar hamle yapılır. Çift gelirse (örn. 4-4), o sayı 4 kez oynanır.</li>
+                    <li><strong>Kırmak:</strong> Rakibin tek pulunun (blot) olduğu haneye gelirseniz onu kırarsınız. Kırılan pul 'Bar'a gider.</li>
+                    <li><strong>Bar:</strong> Barda pulunuz varsa, oyuna oradan girmek zorundasınız. Girmeden başka hamle yapılamaz.</li>
+                    <li><strong>Kapı:</strong> Bir hanede 2 veya daha fazla rakip pul varsa oraya inemezsiniz.</li>
+                    <li><strong>Mars:</strong> Siz tüm pulları topladığınızda rakip hiç pul toplayamadıysa 2 puan alırsınız (Mars). Rakibin pulu sizin evinizde veya barda kaldıysa Katmerli Mars (3 puan) olur. Normal kazanç 1 puandır.</li>
+                </ul>
+                <h3>Kız Tavlası</h3>
+                <ul>
+                    <li>Erkek tavlasından farklı olarak <strong>Kırma Yoktur</strong> ve <strong>Kapı Alma Yoktur</strong>.</li>
+                    <li>İstediğiniz haneye inebilirsiniz. Oyun tamamen bir yarış oyununa dönüşür.</li>
+                    <li>Pullarınızı en hızlı şekilde toplayan kazanır.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
