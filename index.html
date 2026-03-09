@@ -85,7 +85,9 @@
                 titleChess: "Chess", descChess: "Classic 8x8 Chess. 2 players.", titleDama: "Checkers", descDama: "Turkish & International Checkers.", 
                 titleUno: "UNO", descUno: "Pass-the-phone card game. 2-10 players.",
                 dataManager: "⚙️ Data Management (Reset Games)", delTavla: "Reset Tavla", delSpy: "Reset Casus Kim?", 
-                delChess: "Reset Chess", delDama: "Reset Checkers", delUno: "Reset UNO", delAll: "DELETE ALL GAME DATA", alertDeleted: "Data successfully deleted!"
+                delChess: "Reset Chess", delDama: "Reset Checkers", delUno: "Reset UNO", delAll: "DELETE ALL GAME DATA", alertDeleted: "Data successfully deleted!",
+                errBlocked: "Deletion Blocked! Please close any open game tabs (or force close the app) and try again.",
+                errBlockedSome: "Some deletions were blocked! Please close any open game tabs and try again."
             },
             tr: { 
                 hubTitle: "Oyun Merkezi", hubSubtitle: "Klasik oyunların modern web uyarlamaları", 
@@ -93,7 +95,9 @@
                 titleChess: "Satranç", descChess: "Klasik 8x8 Satranç. 2 kişilik.", titleDama: "Dama", descDama: "Türk Daması ve Uluslararası Dama.", 
                 titleUno: "UNO", descUno: "Cihazı devrederek oynanan kart oyunu. 2-10 oyuncu.",
                 dataManager: "⚙️ Veri Yönetimi (Oyunları Sıfırla)", delTavla: "Tavla Sıfırla", delSpy: "Casus Kim? Sıfırla", 
-                delChess: "Satranç Sıfırla", delDama: "Dama Sıfırla", delUno: "UNO Sıfırla", delAll: "TÜM OYUN VERİLERİNİ SİL", alertDeleted: "Veriler başarıyla silindi!"
+                delChess: "Satranç Sıfırla", delDama: "Dama Sıfırla", delUno: "UNO Sıfırla", delAll: "TÜM OYUN VERİLERİNİ SİL", alertDeleted: "Veriler başarıyla silindi!",
+                errBlocked: "İşlem engellendi! Lütfen arka planda veya başka sekmede açık olan oyunu kapatıp tekrar deneyin.",
+                errBlockedSome: "Bazı silme işlemleri engellendi! Lütfen açık olan oyun sekmelerini kapatıp tekrar deneyin."
             }
         };
         const langPicker = document.getElementById('langPicker');
@@ -103,7 +107,7 @@
             currentLang = lang;
             document.documentElement.lang = lang;
             Object.keys(dict[lang]).forEach(k => { 
-                const el = document.getElementById(k === 'dataManager' ? 'ui-data-manager' : (k.startsWith('del') && k !== 'delAll' && k !== 'alertDeleted' ? 'btn-' + k.replace(/([A-Z])/g, "-$1").toLowerCase() : (k === 'delAll' ? 'btn-del-all' : k)));
+                const el = document.getElementById(k === 'dataManager' ? 'ui-data-manager' : (k.startsWith('del') && k !== 'delAll' && k !== 'alertDeleted' && k !== 'errBlocked' && k !== 'errBlockedSome' ? 'btn-' + k.replace(/([A-Z])/g, "-$1").toLowerCase() : (k === 'delAll' ? 'btn-del-all' : k)));
                 if(el) el.innerText = dict[lang][k]; 
             });
             localStorage.setItem('hubLang', lang);
@@ -114,21 +118,47 @@
         langPicker.value = savedLang;
         setLang(savedLang);
 
-        function clearDB(dbName) {
+        // A robust async deleter that properly listens to IndexedDB events
+        function deleteDatabasePromise(dbName) {
+            return new Promise((resolve) => {
+                const req = indexedDB.deleteDatabase(dbName);
+                req.onsuccess = () => resolve({ blocked: false });
+                req.onerror = () => resolve({ blocked: false });
+                // If a game is still open in another tab, this triggers immediately to protect the data
+                req.onblocked = () => resolve({ blocked: true });
+            });
+        }
+
+        async function clearDB(dbName) {
             if(confirm(currentLang === 'en' ? "Are you sure?" : "Emin misiniz?")) {
-                indexedDB.deleteDatabase(dbName);
-                alert(dict[currentLang].alertDeleted);
+                const result = await deleteDatabasePromise(dbName);
+                if (result.blocked) {
+                    alert(dict[currentLang].errBlocked);
+                } else {
+                    alert(dict[currentLang].alertDeleted);
+                }
             }
         }
 
-        function clearAllDBs() {
+        async function clearAllDBs() {
             if(confirm(currentLang === 'en' ? "Delete ALL game data? This cannot be undone." : "TÜM oyun verileri silinsin mi? Bu işlem geri alınamaz.")) {
-                indexedDB.deleteDatabase('tavlaGameDB');
-                indexedDB.deleteDatabase('casusKimGameDB');
-                indexedDB.deleteDatabase('chessGameDB');
-                indexedDB.deleteDatabase('damaGameDB');
-                indexedDB.deleteDatabase('unoGameDB');
-                alert(dict[currentLang].alertDeleted);
+                
+                // Wait for all delete requests to resolve or be blocked
+                const results = await Promise.all([
+                    deleteDatabasePromise('tavlaGameDB'),
+                    deleteDatabasePromise('casusKimGameDB'),
+                    deleteDatabasePromise('chessGameDB'),
+                    deleteDatabasePromise('damaGameDB'),
+                    deleteDatabasePromise('unoGameDB')
+                ]);
+
+                const anyBlocked = results.some(res => res.blocked);
+                
+                if (anyBlocked) {
+                    alert(dict[currentLang].errBlockedSome);
+                } else {
+                    alert(dict[currentLang].alertDeleted);
+                }
             }
         }
     </script>
