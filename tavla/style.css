@@ -10,9 +10,30 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Helvetica Neue', Arial, sans-serif; user-select: none; }
-body { background-color: var(--bg-dark); color: #fff; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
 
-.app-container { display: flex; width: 100vw; height: 100vh; max-width: 1400px; padding: 1rem; gap: 1rem; flex-direction: row; }
+/* FIX: Ekrana sığmadığında kitlenmemesi için body güncellendi */
+body { 
+    background-color: var(--bg-dark); 
+    color: #fff; 
+    min-height: 100vh;
+    min-height: 100dvh; /* Mobil Safari Bar Fixi */
+    display: flex; 
+    justify-content: center; 
+    align-items: flex-start; /* İçerik taşarsa üstten kesilmesin */
+    overflow-y: auto; /* Kaydırmaya izin ver! */
+    overflow-x: hidden;
+    padding: 1rem 0;
+}
+
+.app-container { 
+    display: flex; 
+    width: 100vw; 
+    max-width: 1400px; 
+    padding: 0 1rem; 
+    gap: 1rem; 
+    flex-direction: row; 
+    align-items: stretch;
+}
 
 /* Paneller */
 .panel { background-color: var(--panel-bg); border-radius: 10px; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; width: 250px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
@@ -35,16 +56,16 @@ button { padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-
     100% { transform: scale(1); }
 }
 
-.history-log { flex: 1; overflow-y: auto; background: #111; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 0.9rem; line-height: 1.4; }
+.history-log { flex: 1; overflow-y: auto; background: #111; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 0.9rem; line-height: 1.4; min-height: 100px; }
 #scoreBoard { background: #222; padding: 10px; border-radius: 5px; text-align: center; }
 
 /* Tahta Konteyneri */
-.board-container { flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.board-container { flex: 3; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .status-bar { display: flex; justify-content: space-between; align-items: center; background: var(--panel-bg); padding: 10px 20px; border-radius: 10px; font-size: 1.2rem; font-weight: bold; }
 .dice-display { display: flex; gap: 10px; min-width: 80px; justify-content: center; font-size: 2rem;}
 
 /* Oyun Tahtası */
-.tavla-board { flex: 1; background-color: var(--wood-bg); border: 15px solid var(--wood-border); border-radius: 10px; display: flex; position: relative; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); overflow: hidden;}
+.tavla-board { min-height: 60vh; flex: 1; background-color: var(--wood-bg); border: 15px solid var(--wood-border); border-radius: 10px; display: flex; position: relative; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); overflow: hidden;}
 .board-half { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 2; }
 .board-bar { width: 40px; background-color: var(--wood-border); border-left: 2px solid #2a1106; border-right: 2px solid #2a1106; display: flex; flex-direction: column; position: relative; z-index: 2;}
 .bear-off-zone { width: 60px; background-color: #8c6a43; border-left: 5px solid var(--wood-border); display: flex; flex-direction: column; position: relative; z-index: 2;}
@@ -64,15 +85,12 @@ button { padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-
 
 .point.dark::before { background-color: var(--dark-point); }
 .point.light::before { background-color: var(--light-point); }
-
-/* Vurgulanan (Legal) Hedefler */
 .point.highlight::after { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(46, 204, 113, 0.4); z-index: 2; pointer-events: none; }
 
 /* Pullar */
 .checker-container { position: absolute; top: 0; bottom: 0; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; z-index: 3; padding: 5px 0; pointer-events: none; }
 .bottom-row .checker-container { justify-content: flex-end; }
 .top-row .checker-container { justify-content: flex-start; }
-
 .checker { width: 80%; aspect-ratio: 1; border-radius: 50%; box-shadow: 0 3px 5px rgba(0,0,0,0.5), inset 0 0 5px rgba(255,255,255,0.2); border: 2px solid rgba(0,0,0,0.2); position: relative; pointer-events: auto; cursor: grab; margin: -5% 0; transition: transform 0.2s; }
 .checker:active { cursor: grabbing; }
 .checker.p1 { background-color: var(--p1-piece); }
@@ -89,44 +107,67 @@ button { padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-
 .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); justify-content: center; align-items: center; }
 .modal-content { background-color: var(--panel-bg); padding: 20px; border-radius: 10px; width: 80%; max-width: 600px; position: relative; color: #fff; }
 .close-btn { position: absolute; top: 10px; right: 15px; color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; }
-.close-btn:hover { color: #fff; }
-.rules-text h3 { margin-top: 15px; color: #e74c3c; }
-.rules-text ul { margin-left: 20px; margin-top: 10px; line-height: 1.6; }
-.rules-btn { position: absolute; bottom: 1rem; left: 1rem; width: 40px; height: 40px; background: #e67e22; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; font-weight: bold; cursor: pointer; color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
-.rules-btn:hover { background: #d35400; }
+.rules-btn { position: absolute; bottom: 1rem; left: 1rem; width: 40px; height: 40px; background: #e67e22; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; font-weight: bold; cursor: pointer; color: #fff; }
 
-/* Responsive adjustments */
-@media (max-width: 1024px) {
-    .app-container { flex-direction: column; }
-    .panel { width: 100%; flex-direction: row; flex-wrap: wrap; height: auto; }
-    .right-panel { order: 3; }
-    .history-log { max-height: 100px; width: 100%; }
-    .rules-btn { position: static; }
-}
-
-/* ========================================= */
-/* YENİ: Oklar ve Hanelerin Numaraları       */
-/* ========================================= */
-
-.direction-arrows {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    pointer-events: none;
-    z-index: 1; /* Pulların arkasında, tahtanın üstünde */
-}
-
-.point-number {
-    position: absolute;
-    font-size: 11px;
-    font-weight: bold;
-    z-index: 2; /* Rakamlar pulların arkasında ama zemin üstünde */
-    pointer-events: none;
-}
-
+/* YÖN OKLARI & NUMARALAR */
+.direction-arrows { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+.point-number { position: absolute; font-size: 11px; font-weight: bold; z-index: 2; pointer-events: none; }
 .top-row .point-number { top: 3px; }
 .bottom-row .point-number { bottom: 3px; }
-
-/* Renk kontrastı - koyu zemine açık, açık zemine koyu rakam */
 .point.dark .point-number { color: rgba(255, 255, 255, 0.6); }
 .point.light .point-number { color: rgba(0, 0, 0, 0.5); }
+
+
+/* ============================================== */
+/* RESPONSIVE (MOBIL / IPAD)          */
+/* ============================================== */
+
+/* Masaüstü detay ayarları */
+.mobile-flex-row { display: none; }
+.details-content { display: flex; flex-direction: column; gap: 10px; height: 100%; }
+.history-flex { flex: 1; }
+details.mobile-details summary { display: none; }
+
+/* TABLET / IPAD PORTRAIT */
+@media (max-width: 1024px) {
+    .app-container { flex-direction: column; }
+    .left-panel { order: 1; }
+    .board-container { order: 2; min-height: 50vh; }
+    .right-panel { order: 3; }
+    .panel { width: 100%; height: auto; }
+}
+
+/* MOBİL (TELEFONLAR) */
+@media (max-width: 768px) {
+    .app-container { padding: 0.5rem; gap: 0.5rem; }
+    .tavla-board { border-width: 8px; min-height: 45vh; }
+    .board-bar { width: 25px; }
+    .bear-off-zone { width: 40px; }
+    .checker { margin: -10% 0; } /* Pullar küçük ekranda daha çok iç içe geçer */
+    .status-bar { font-size: 1rem; padding: 5px 10px; }
+    .dice-display { transform: scale(0.8); }
+    .point-number { font-size: 9px; }
+    
+    .panel { flex-direction: column; padding: 10px; }
+    
+    /* Yeni Oyun ve Geri Al Butonları Mobilde En Üstte Yan Yana */
+    .mobile-flex-row { display: flex; width: 100%; gap: 10px; margin-bottom: 10px; }
+    .mobile-flex-row button { flex: 1; margin: 0; padding: 12px 5px; }
+    
+    /* Detayları (Ayarlar & Geçmiş) Mobilde Açılır Kapanır (Accordion) Yap */
+    details.mobile-details { width: 100%; }
+    details.mobile-details summary {
+        display: block;
+        background: #34495e;
+        padding: 12px;
+        font-weight: bold;
+        text-align: center;
+        border-radius: 5px;
+        cursor: pointer;
+        outline: none;
+    }
+    details.mobile-details[open] summary { margin-bottom: 10px; background: #2c3e50; border: 1px solid #34495e; }
+    
+    .panel h2 { display: none; } /* Kalabalık yapmaması için panel başlıklarını gizle */
+    .rules-btn { position: fixed; bottom: 15px; right: 15px; z-index: 50; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+}
