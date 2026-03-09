@@ -23,6 +23,11 @@ let db;
 
 // --- INITIALIZATION ---
 document.addEventListener("DOMContentLoaded", () => {
+    // Masaüstünde ayar ve geçmiş panellerini açık tut
+    if (window.innerWidth > 768) {
+        document.querySelectorAll('details.mobile-details').forEach(d => d.open = true);
+    }
+
     initIndexedDB().then(() => {
         loadGameState().then(savedState => {
             if (savedState) {
@@ -385,7 +390,6 @@ function renderBoard() {
             pointDiv.className = `point ${(indices.indexOf(idx) % 2 === 0) ? 'dark' : 'light'}`;
             if (legalMoves.includes(idx.toString())) pointDiv.classList.add('highlight');
             
-            // YENİ: Hanenin numarasını ekle (Görsel Yardım)
             const numSpan = document.createElement('span');
             numSpan.className = 'point-number';
             numSpan.innerText = idx;
@@ -465,6 +469,18 @@ function updateUI() {
     
     const log = document.getElementById('historyLog');
     log.innerHTML = gameState.moveLog.slice(-10).reverse().join('<br>');
+
+    // YENİ: Zarları sayfa yenilendiğinde hafızadan çekip ekranda göster
+    const diceArea = document.getElementById('diceDisplay');
+    diceArea.innerHTML = ''; 
+    
+    if (gameState.movesLeft.length > 0 && gameState.dice.length === 2) {
+        diceArea.appendChild(createDieElement(gameState.dice[0], false));
+        diceArea.appendChild(createDieElement(gameState.dice[1], false));
+        document.getElementById('btnRoll').classList.remove('highlight');
+    } else {
+        document.getElementById('btnRoll').classList.add('highlight');
+    }
 }
 
 function logMove(msg) {

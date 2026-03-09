@@ -9,14 +9,22 @@
 <body>
     <div class="app-container">
         <div class="panel left-panel">
-            <h2>Ayarlar</h2>
-            <div class="mode-selectors">
-                <button id="btnErkek" class="active">Erkek Tavlası</button>
-                <button id="btnKiz">Kız Tavlası</button>
+            <div class="mobile-flex-row">
+                <button id="btnNewGame" class="action-btn">Yeni Oyun</button>
+                <button id="btnUndo" class="action-btn" disabled>Hamleyi Geri Al</button>
             </div>
-            <button id="btnNewGame" class="action-btn">Yeni Oyun</button>
-            <button id="btnUndo" class="action-btn" disabled>Hamleyi Geri Al</button>
-            <button id="btnResetDB" class="danger-btn">Tavla Verilerini Sil</button>
+            
+            <details class="mobile-details" id="settingsDetails">
+                <summary>Ayarlar & Kurallar</summary>
+                <div class="details-content">
+                    <h2>Ayarlar</h2>
+                    <div class="mode-selectors">
+                        <button id="btnErkek" class="active">Erkek Tavlası</button>
+                        <button id="btnKiz">Kız Tavlası</button>
+                    </div>
+                    <button id="btnResetDB" class="danger-btn">Tavla Verilerini Sil</button>
+                </div>
+            </details>
             <div id="rulesIcon" class="rules-btn">?</div>
         </div>
 
@@ -41,7 +49,6 @@
                     </defs>
                     <path d="M 850 160 L 150 160 Q 100 160 100 300 Q 100 440 150 440 L 850 440" 
                           fill="none" stroke="rgba(249, 249, 249, 0.35)" stroke-width="12" stroke-dasharray="20, 15" marker-end="url(#arrowWhite)"/>
-                    
                     <path d="M 850 480 L 80 480 Q 30 480 30 300 Q 30 120 80 120 L 850 120" 
                           fill="none" stroke="rgba(34, 34, 34, 0.35)" stroke-width="12" stroke-dasharray="20, 15" marker-end="url(#arrowBlack)"/>
                 </svg>
@@ -69,13 +76,18 @@
         </div>
 
         <div class="panel right-panel">
-            <h2>Hamle Geçmişi</h2>
-            <div id="historyLog" class="history-log"></div>
-            <div id="scoreBoard">
-                <p>Skorlar</p>
-                <p>Oyuncu 1: <span id="scoreP1">0</span></p>
-                <p>Oyuncu 2: <span id="scoreP2">0</span></p>
-            </div>
+            <details class="mobile-details" id="historyDetails">
+                <summary>Skor & Hamle Geçmişi</summary>
+                <div class="details-content history-flex">
+                    <h2>Hamle Geçmişi</h2>
+                    <div id="historyLog" class="history-log"></div>
+                    <div id="scoreBoard">
+                        <p>Skorlar</p>
+                        <p>Oyuncu 1: <span id="scoreP1">0</span></p>
+                        <p>Oyuncu 2: <span id="scoreP2">0</span></p>
+                    </div>
+                </div>
+            </details>
         </div>
     </div>
 
