@@ -30,7 +30,7 @@ body {
 
 .app-container {
     width: 100%;
-    max-width: 520px;
+    max-width: min(800px, 50vh); /*BUNLARIN HEPSI 480DI DEGISTIRDIM AMA LANDSCAPE BOK SU AN*/
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -126,14 +126,16 @@ select {
     justify-content: center;
     align-items: center;
     flex: 1;
+    max-height: fit-content;
+    padding: 2vh 0 2vh 0;
 }
 
 .sudoku-board {
     display: grid;
     grid-template-columns: repeat(9, 1fr);
     grid-template-rows: repeat(9, 1fr);
-    width: min(100%, 100vmin - 20px, 480px);
-    max-width: 480px;
+    width: min(100%, 100vmin - 20px, 800px);
+    max-width: 800px;
     aspect-ratio: 1;
     border: 3px solid var(--box-border);
     border-radius: 6px;
@@ -212,7 +214,7 @@ select {
     color: rgba(168, 208, 245, 0.55);
     line-height: 1;
 }
-.cell-note-num.ghost { color: rgba(168, 208, 245, 0.25); font-style: italic; }
+.cell-note-num.ghost { color: rgba(168, 208, 245, 0.25); font-style: italic; font-family: monospace;}
 .cell-note-num.user  { color: rgba(255, 220, 100, 0.75); }
 
 /* Numpad */

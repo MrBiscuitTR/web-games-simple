@@ -1,8 +1,9 @@
 const DICT = {
-    en: { 
-        setup: "Setup Game", players: "Players: ", start: "Start", del: "Delete Data", newGame: "New Game", pTurn: "Player {n} Turn", 
-        showCards: "Tap to show cards", endTurn: "End Turn", passPhone: "Pass Phone", rulesTitle: "Rules", win: "Player {n} Wins!", 
+    en: {
+        setup: "Setup Game", players: "Players: ", start: "Start", del: "Delete Data", newGame: "New Game", pTurn: "Player {n} Turn",
+        showCards: "Tap to show cards", endTurn: "End Turn", passPhone: "Pass Phone", rulesTitle: "Rules", win: "Player {n} Wins!",
         menu: "Menu", forgot: "Forgot UNO! Drew 2 cards.", undo: "Undo", drawBtn: "+ Draw",
+        unoCall: "UNO! Player {n} has one card left!",
         rules: `
             <ul>
                 <li><strong>Goal:</strong> Be the first player to get rid of all your cards.</li>
@@ -20,10 +21,11 @@ const DICT = {
                 <li><strong>Undo:</strong> You can undo your card play ONCE per turn, provided you haven't passed the phone yet. (+2 cards cannot be undone).</li>
             </ul>`
     },
-    tr: { 
-        setup: "Oyunu Kur", players: "Oyuncular: ", start: "Başlat", del: "Verileri Sil", newGame: "Yeni Oyun", pTurn: "Oyuncu {n} Sırası", 
-        showCards: "Kartları gör", endTurn: "Turu Bitir", passPhone: "Telefonu Devret", rulesTitle: "Kurallar", win: "Oyuncu {n} Kazandı!", 
+    tr: {
+        setup: "Oyunu Kur", players: "Oyuncular: ", start: "Başlat", del: "Verileri Sil", newGame: "Yeni Oyun", pTurn: "Oyuncu {n} Sırası",
+        showCards: "Kartları gör", endTurn: "Turu Bitir", passPhone: "Telefonu Devret", rulesTitle: "Kurallar", win: "Oyuncu {n} Kazandı!",
         menu: "Menü", forgot: "UNO demeyi unuttun! 2 kart çektin.", undo: "Geri Al", drawBtn: "+ Çek",
+        unoCall: "UNO! Oyuncu {n}'in bir kartı kaldı!",
         rules: `
             <ul>
                 <li><strong>Hedef:</strong> Elindeki tüm kartlardan kurtulan ilk oyuncu olmak.</li>
@@ -44,14 +46,17 @@ const DICT = {
 };
 const COLORS = ['red','blue','green','yellow'];
 const VALUES = ['0','1','2','3','4','5','6','7','8','9','+2','Skip','Rev'];
-let db, lang = 'en', s = { pCount: 2 };
-let state = null; 
-let turnSnapshot = null; 
-let isDragging = false; 
+let db, lang = 'en', s = { pCount: 2, names: [] };
+let state = null;
+let turnSnapshot = null;
+let isDragging = false;
+let unoPlayers = {}; // { playerIndex: true } for players who called UNO
 
 document.addEventListener("DOMContentLoaded", () => {
     initDB().then(() => loadState().then(() => {
         document.getElementById('langPicker').value = lang;
+        document.getElementById('val-p').innerText = s.pCount;
+        renderNameList();
         if(state) { switchScreen('screen-pass'); updateUI(); } else updateUI();
     }));
     document.getElementById('langPicker').addEventListener('change', e => { lang = e.target.value; if(state)saveState(); updateUI(); });
@@ -63,7 +68,36 @@ document.addEventListener("DOMContentLoaded", () => {
     handArea.addEventListener('touchmove', () => isDragging = true, {passive: true});
 });
 
-function changeP(d) { s.pCount = Math.max(2, Math.min(10, s.pCount+d)); document.getElementById('val-p').innerText = s.pCount; }
+function playerName(i) {
+    const n = s.names[i] && s.names[i].trim();
+    return n || (lang === 'tr' ? `Oyuncu ${i + 1}` : `Player ${i + 1}`);
+}
+
+function renderNameList() {
+    const list = document.getElementById('name-list');
+    list.innerHTML = '';
+    for(let i = 0; i < s.pCount; i++) {
+        const row = document.createElement('div');
+        row.className = 'name-row';
+        const lbl = document.createElement('label');
+        lbl.innerText = (i + 1) + '.';
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.maxLength = 20;
+        inp.placeholder = DICT[lang].pTurn.replace('{n}', i + 1);
+        inp.value = s.names[i] || '';
+        inp.addEventListener('input', e => { s.names[i] = e.target.value; });
+        row.appendChild(lbl);
+        row.appendChild(inp);
+        list.appendChild(row);
+    }
+}
+
+function changeP(d) {
+    s.pCount = Math.max(2, Math.min(10, s.pCount + d));
+    document.getElementById('val-p').innerText = s.pCount;
+    renderNameList();
+}
 
 function initGame() {
     state = { deck: [], discard: [], hands: [], turn: 0, dir: 1, hasDrawn: false, unoCalled: false, skipNext: false };
@@ -80,7 +114,8 @@ function initGame() {
     saveState(); switchScreen('screen-pass'); updateUI();
 }
 
-function resetGame() { if(confirm(lang==='en'?"Start a new game?":"Yeni oyun başlatılsın mı?")) { state = null; turnSnapshot = null; saveState(); switchScreen('screen-setup'); updateUI(); } }
+function resetGame() { state = null; turnSnapshot = null; unoPlayers = {}; saveState(); switchScreen('screen-setup'); updateUI(); }
+function winNewGame() { document.getElementById('winModal').style.display = 'none'; resetGame(); }
 
 function reshuffle() {
     if(state.deck.length > 0) return;
@@ -92,7 +127,7 @@ function reshuffle() {
 
 function showGame() {
     switchScreen('screen-game');
-    state.hasDrawn = false; 
+    state.hasDrawn = false;
     state.unoCalled = false;
     turnSnapshot = null; 
     
@@ -112,10 +147,24 @@ function nextTurn() {
     saveState(); switchScreen('screen-pass'); updateUI();
 }
 
+function showToast(msg) {
+    const t = document.getElementById('forgot-toast');
+    t.innerText = msg;
+    t.style.display = 'block';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => { t.style.display = 'none'; }, 3000);
+}
+
+function showUnoBanner(playerNum) {
+    const b = document.getElementById('uno-banner');
+    b.innerText = DICT[lang].unoCall.replace('{n}', playerNum);
+    b.style.display = 'block';
+}
+
 function endTurn() {
     if(state.hands[state.turn].length === 1 && !state.unoCalled) {
-        alert(DICT[lang].forgot); 
-        reshuffle(); if(state.deck.length>0) state.hands[state.turn].push(state.deck.pop()); 
+        showToast(DICT[lang].forgot);
+        reshuffle(); if(state.deck.length>0) state.hands[state.turn].push(state.deck.pop());
         reshuffle(); if(state.deck.length>0) state.hands[state.turn].push(state.deck.pop());
     }
     nextTurn();
@@ -146,9 +195,13 @@ function playCard(idx) {
 
         state.discard.push(hand.splice(idx,1)[0]);
         
-        if(hand.length === 0) { 
-            alert(DICT[lang].win.replace('{n}', state.turn+1)); 
-            state=null; saveState(); switchScreen('screen-setup'); updateUI(); return; 
+        if(hand.length === 0) {
+            saveState();
+            const m = document.getElementById('winModal');
+            document.getElementById('win-modal-title').innerText = DICT[lang].win.replace('{n}', playerName(state.turn));
+            document.getElementById('btn-win-new').innerText = DICT[lang].newGame;
+            m.style.display = 'flex';
+            return;
         }
         
         let isPlusTwo = (c.v === '+2');
@@ -187,10 +240,28 @@ function drawCard() {
     renderTable();
 }
 
-function callUno() { 
-    state.unoCalled = true; 
+function callUno() {
+    if(state.hands[state.turn].length !== 1) return;
+    state.unoCalled = true;
+    unoPlayers[state.turn] = true;
     saveState();
-    document.getElementById('btn-uno').style.opacity = 0.5; 
+    updateUnoBanner();
+    renderTable();
+}
+
+function updateUnoBanner() {
+    // Remove players who no longer have exactly 1 card
+    Object.keys(unoPlayers).forEach(i => {
+        if(!state.hands[i] || state.hands[i].length !== 1) delete unoPlayers[i];
+    });
+    const b = document.getElementById('uno-banner');
+    const names = Object.keys(unoPlayers).map(i => DICT[lang].unoCall.replace('{n}', playerName(parseInt(i))));
+    if(names.length > 0) {
+        b.innerHTML = names.join('<br>');
+        b.style.display = 'block';
+    } else {
+        b.style.display = 'none';
+    }
 }
 
 function renderTable() {
@@ -203,8 +274,11 @@ function renderTable() {
         cd.onclick = () => playCard(i); handDiv.appendChild(cd);
     });
     
-    document.getElementById('ui-turn-info').innerText = DICT[lang].pTurn.replace('{n}', state.turn+1);
-    document.getElementById('btn-uno').style.opacity = state.unoCalled ? 0.5 : 1;
+    document.getElementById('ui-turn-info').innerText = playerName(state.turn);
+    const canCallUno = state.hands[state.turn].length === 1 && !state.unoCalled;
+    document.getElementById('btn-uno').style.opacity = (state.unoCalled || !canCallUno) ? 0.5 : 1;
+    document.getElementById('btn-uno').disabled = !canCallUno;
+    updateUnoBanner();
 }
 
 function switchScreen(id) { document.querySelectorAll('.screen').forEach(el=>el.classList.remove('active')); document.getElementById(id).classList.add('active'); }
@@ -223,7 +297,7 @@ function updateUI() {
     document.getElementById('btn-new-game').innerText = d.newGame;
     document.getElementById('btn-del-game').innerText = d.del;
     
-    if(state) document.getElementById('ui-pass-msg').innerText = d.pTurn.replace('{n}', state.turn+1);
+    if(state) document.getElementById('ui-pass-msg').innerText = playerName(state.turn);
     document.getElementById('btn-show-cards').innerText = d.showCards; 
     document.getElementById('ui-rules-title').innerText = d.rulesTitle; document.getElementById('rules-text').innerHTML = d.rules;
     document.getElementById('ui-game-menu').innerText = d.menu; document.getElementById('ui-game-menu-pass').innerText = d.menu;
@@ -236,6 +310,6 @@ function updateUI() {
 }
 
 function initDB() { return new Promise(res => { let req=indexedDB.open('unoGameDB', 1); req.onupgradeneeded=e=>{db=e.target.result;db.createObjectStore('s',{keyPath:'id'})}; req.onsuccess=e=>{db=e.target.result;res()} }); }
-function saveState() { if(db) db.transaction('s','readwrite').objectStore('s').put({id:'cur', st:JSON.stringify({s:state, l:lang})}); }
-function loadState() { return new Promise(res => { if(!db)res(); let r=db.transaction('s','readonly').objectStore('s').get('cur'); r.onsuccess=()=>{if(r.result){let p=JSON.parse(r.result.st);state=p.s;lang=p.l;} res()} }); }
+function saveState() { if(db) db.transaction('s','readwrite').objectStore('s').put({id:'cur', st:JSON.stringify({s:state, l:lang, names:s.names, pCount:s.pCount})}); }
+function loadState() { return new Promise(res => { if(!db){res();return;} let r=db.transaction('s','readonly').objectStore('s').get('cur'); r.onsuccess=()=>{if(r.result){let p=JSON.parse(r.result.st);state=p.s;lang=p.l;if(p.names)s.names=p.names;if(p.pCount)s.pCount=p.pCount;} res()}; r.onerror=()=>res(); }); }
 function resetDB() { if(confirm(lang==='en'?"Delete data?":"Veriler silinsin mi?")){indexedDB.deleteDatabase('unoGameDB'); location.reload();} }
