@@ -6,16 +6,17 @@
 
 // --- STATE MANAGEMENT ---
 let gameState = {
-    mode: 'erkek', 
-    turn: 1,       
-    board: Array(25).fill(null).map(() => ({ 1: 0, 2: 0 })), 
-    bar: { 1: 0, 2: 0 },         
-    bearOff: { 1: 0, 2: 0 },     
-    dice: [],                    
-    movesLeft: [],               
-    history: [],                 
+    mode: 'erkek',
+    turn: 1,
+    board: Array(25).fill(null).map(() => ({ 1: 0, 2: 0 })),
+    bar: { 1: 0, 2: 0 },
+    bearOff: { 1: 0, 2: 0 },
+    dice: [],
+    movesLeft: [],
+    history: [],
     scores: { 1: 0, 2: 0 },
-    moveLog: []                  
+    moveLog: [],
+    gameOver: false
 };
 
 let selectedPoint = null;
@@ -44,7 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function setupEventListeners() {
     document.getElementById('btnRoll').addEventListener('click', rollDice);
-    document.getElementById('btnNewGame').addEventListener('click', () => { initBoard(); saveGameState(); });
+    document.getElementById('btnNewGame').addEventListener('click', () => { initBoard(false); saveGameState(); });
     document.getElementById('btnUndo').addEventListener('click', undoMove);
     document.getElementById('btnResetDB').addEventListener('click', resetIndexedDB);
     
@@ -58,6 +59,11 @@ function setupEventListeners() {
 
     document.getElementById('off-p1').addEventListener('click', () => handlePointClick('off-1'));
     document.getElementById('off-p2').addEventListener('click', () => handlePointClick('off-2'));
+
+    document.getElementById('btnNextGame').addEventListener('click', () => {
+        document.getElementById('winModal').style.display = 'none';
+        initBoard(true); // true = keep scores
+    });
 }
 
 function switchMode(mode) {
@@ -72,7 +78,8 @@ function switchMode(mode) {
 
 // --- GAME LOGIC ---
 
-function initBoard() {
+function initBoard(keepScores = false) {
+    const savedScores = keepScores ? { ...gameState.scores } : { 1: 0, 2: 0 };
     gameState.board = Array(25).fill(null).map(() => ({ 1: 0, 2: 0 }));
     gameState.bar = { 1: 0, 2: 0 };
     gameState.bearOff = { 1: 0, 2: 0 };
@@ -81,6 +88,8 @@ function initBoard() {
     gameState.history = [];
     gameState.moveLog = [];
     gameState.turn = 1;
+    gameState.scores = savedScores;
+    gameState.gameOver = false;
     selectedPoint = null;
 
     const setup = [
@@ -97,7 +106,8 @@ function initBoard() {
 }
 
 function rollDice() {
-    if (gameState.movesLeft.length > 0) return; 
+    if (gameState.gameOver) return;
+    if (gameState.movesLeft.length > 0) return;
     
     saveHistoryState();
 
@@ -208,6 +218,7 @@ function canBearOff(player) {
 // --- EXECUTING MOVES ---
 
 function handlePointClick(pointId) {
+    if (gameState.gameOver) return;
     if (gameState.movesLeft.length === 0) return;
 
     let p = gameState.turn;
@@ -295,32 +306,38 @@ function bearOff(player) {
 function checkWin(player) {
     if (gameState.bearOff[player] === 15) {
         let opp = player === 1 ? 2 : 1;
-        let msg = `Oyuncu ${player} Kazandı!`;
-        
+        let title = `Oyuncu ${player} Kazandı!`;
+        let detail = '';
+
         if (gameState.bearOff[opp] === 0) {
             let isKatmerli = gameState.bar[opp] > 0;
             if (!isKatmerli) {
                 let start = player === 1 ? 19 : 1;
                 let end = player === 1 ? 24 : 6;
-                for(let i=start; i<=end; i++) {
-                    if(gameState.board[i][opp] > 0) isKatmerli = true;
+                for (let i = start; i <= end; i++) {
+                    if (gameState.board[i][opp] > 0) isKatmerli = true;
                 }
             }
-            if(isKatmerli) {
-                msg += " (Katmerli Mars - 3 Puan)";
+            if (isKatmerli) {
+                detail = "Katmerli Mars! (+3 Puan)";
                 gameState.scores[player] += 3;
             } else {
-                msg += " (Mars - 2 Puan)";
+                detail = "Mars! (+2 Puan)";
                 gameState.scores[player] += 2;
             }
         } else {
-            msg += " (Normal Kazanç - 1 Puan)";
+            detail = "Normal Kazanç (+1 Puan)";
             gameState.scores[player] += 1;
         }
 
-        alert(msg);
-        gameState.movesLeft = []; 
+        gameState.gameOver = true;
+        gameState.movesLeft = [];
+        saveGameState();
         renderAll();
+
+        document.getElementById('winModalTitle').innerText = title;
+        document.getElementById('winModalMsg').innerText = detail;
+        document.getElementById('winModal').style.display = 'flex';
         return true;
     }
     return false;
@@ -443,15 +460,23 @@ function renderSideZone(type, data, legalMoves, isBearOff = false) {
     [1, 2].forEach(p => {
         const container = document.getElementById(`${type}-p${p}`);
         const idStr = `${type}-${p}`;
-        
+
         if (legalMoves.includes(idStr)) container.classList.add('highlight');
 
-        for(let i=0; i<data[p]; i++) {
+        if (isBearOff && data[p] > 0) {
+            // Show count label
+            const countLabel = document.createElement('div');
+            countLabel.className = 'bear-off-count';
+            countLabel.innerText = `${data[p]}/15`;
+            container.appendChild(countLabel);
+        }
+
+        for (let i = 0; i < data[p]; i++) {
             const checker = document.createElement('div');
             checker.className = `checker p${p}`;
-            if (selectedPoint === idStr && i === data[p]-1) checker.classList.add('selected');
-            
-            if (!isBearOff && p === gameState.turn && i === data[p]-1) {
+            if (selectedPoint === idStr && i === data[p] - 1) checker.classList.add('selected');
+
+            if (!isBearOff && p === gameState.turn && i === data[p] - 1) {
                 checker.draggable = true;
                 checker.onclick = (e) => { e.stopPropagation(); handlePointClick(idStr); };
                 checker.ondragstart = () => { selectedPoint = idStr; renderAll(); };
@@ -545,6 +570,7 @@ function loadGameState() {
                     if (state.board && state.board[1] && state.board[1].count !== undefined) {
                         resolve(null);
                     } else {
+                        if (state.gameOver === undefined) state.gameOver = false;
                         resolve(state);
                     }
                 } catch(e) {

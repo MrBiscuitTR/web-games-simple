@@ -74,9 +74,25 @@ button { padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-
 .row { flex: 1; display: flex; position: relative; }
 .top-row { flex-direction: row; }
 .bottom-row { flex-direction: row; }
-.bar-top, .bar-bottom, .bear-off-top, .bear-off-bottom { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 5px 0; }
+.bar-top, .bar-bottom, .bear-off-top, .bear-off-bottom { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 5px 0; overflow: hidden; position: relative; }
 .bar-top, .bear-off-top { justify-content: flex-start; }
 .bar-bottom, .bear-off-bottom { justify-content: flex-end; }
+
+/* Bear-off counter label */
+.bear-off-count {
+    font-size: 10px;
+    font-weight: bold;
+    color: rgba(255,255,255,0.85);
+    background: rgba(0,0,0,0.45);
+    border-radius: 4px;
+    padding: 1px 3px;
+    margin: 2px 0;
+    text-align: center;
+    z-index: 5;
+    flex-shrink: 0;
+    line-height: 1.2;
+    max-width: 100%;
+}
 
 /* Haneler (Üçgenler) */
 .point { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; width: 100%; height: 100%; cursor: pointer; }
@@ -97,6 +113,15 @@ button { padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-
 .checker.p1 { background-color: var(--p1-piece); }
 .checker.p2 { background-color: var(--p2-piece); }
 .checker.selected { transform: scale(1.1); box-shadow: 0 0 15px #f1c40f; border-color: #f1c40f; z-index: 10; }
+
+/* Bear-off checkers: very tight stacking so 15 never overflow */
+.bear-off-top .checker, .bear-off-bottom .checker { margin: -18% 0; width: 75%; }
+
+/* Win modal */
+#winModal .modal-content { text-align: center; }
+#winModal h2 { font-size: 2rem; color: #f1c40f; margin-bottom: 1rem; }
+#winModal p { font-size: 1.1rem; margin-bottom: 1.5rem; }
+#winModal .btn-next { background: #2ecc71; color: #fff; padding: 14px 30px; font-size: 1.2rem; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; width: 100%; }
 
 /* Zarlar */
 .die { width: 40px; height: 40px; background: #fff; border-radius: 8px; display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); padding: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }

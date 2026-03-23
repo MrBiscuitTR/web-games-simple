@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minefield</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="header-left">
+                <a href="/" class="global-hub-btn" aria-label="Home">🏠</a>
+                <h1 id="ui-title">Minefield</h1>
+            </div>
+            <select id="langPicker">
+                <option value="en">English</option>
+                <option value="tr">Türkçe</option>
+            </select>
+        </header>
+
+        <div class="controls-bar">
+            <div class="preset-tabs">
+                <button class="preset-btn active" data-preset="easy" id="btn-easy">Easy</button>
+                <button class="preset-btn" data-preset="medium" id="btn-medium">Medium</button>
+                <button class="preset-btn" data-preset="hard" id="btn-hard">Hard</button>
+                <button class="preset-btn" data-preset="custom" id="btn-custom">Custom</button>
+            </div>
+        </div>
+
+        <!-- Custom settings (hidden unless custom preset selected) -->
+        <div id="custom-panel" class="custom-panel" style="display:none;">
+            <div class="custom-row">
+                <label id="lbl-rows">Rows:</label>
+                <input type="range" id="inp-rows" min="5" max="24" value="10">
+                <span id="val-rows">10</span>
+            </div>
+            <div class="custom-row">
+                <label id="lbl-cols">Cols:</label>
+                <input type="range" id="inp-cols" min="5" max="30" value="10">
+                <span id="val-cols">10</span>
+            </div>
+            <div class="custom-row">
+                <label id="lbl-mines">Mines:</label>
+                <input type="range" id="inp-mines" min="1" max="35" value="15">
+                <span id="val-mines">15</span>
+            </div>
+            <button id="btn-apply" class="btn">Apply</button>
+        </div>
+
+        <div class="status-bar">
+            <span>💣 <span id="mines-left">0</span></span>
+            <div class="action-btns">
+                <button id="btn-new" class="btn">New Game</button>
+                <button id="btn-flag" class="btn secondary">🚩 Flag</button>
+                <button id="btn-rightclick-flag" class="btn secondary desktop-only">🖱️ Right-click flags</button>
+                <button id="btn-undo" class="btn secondary" disabled>↩ Undo (1)</button>
+            </div>
+            <span>⏱ <span id="timer">0</span>s</span>
+        </div>
+
+        <div class="board-scroll-outer" id="board-scroll-outer">
+            <div class="board-scroll-inner" id="board-scroll-inner">
+                <div id="mine-board" class="mine-board"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Win Modal -->
+    <div id="winModal" class="modal">
+        <div class="modal-content">
+            <h2 id="win-title">You Win! 🎉</h2>
+            <p id="win-msg">All mines cleared!</p>
+            <div class="modal-btns" style="margin-top:1rem;">
+                <button id="btn-new-win" class="btn" style="width:100%;">New Game</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lose Modal -->
+    <div id="loseModal" class="modal">
+        <div class="modal-content">
+            <h2 id="lose-title">💥 Boom!</h2>
+            <p id="lose-msg">You hit a mine.</p>
+            <div class="modal-btns">
+                <button id="btn-undo-lose" class="btn secondary">↩ Undo (1)</button>
+                <button id="btn-new-lose" class="btn">New Game</button>
+            </div>
+            <div class="modal-btns" style="margin-top:8px; display:none;" id="continue-lose-row">
+                <button id="btn-continue-lose" class="btn secondary" style="width:100%;">Continue Anyway</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="/sw-register.js"></script>
+</body>
+</html>

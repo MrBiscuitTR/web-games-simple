@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sudoku</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="header-left">
+                <a href="/" class="global-hub-btn" aria-label="Home">🏠</a>
+                <h1 id="ui-title">Sudoku</h1>
+            </div>
+            <select id="langPicker">
+                <option value="en">English</option>
+                <option value="tr">Türkçe</option>
+            </select>
+        </header>
+
+        <div class="controls-bar">
+            <div class="difficulty-tabs">
+                <button class="diff-btn active" data-diff="easy" id="btn-easy">Easy</button>
+                <button class="diff-btn" data-diff="medium" id="btn-medium">Medium</button>
+                <button class="diff-btn" data-diff="hard" id="btn-hard">Hard</button>
+            </div>
+            <div class="action-btns">
+                <button id="btn-new" class="btn">New Game</button>
+                <button id="btn-undo" class="btn secondary" disabled>Undo (3)</button>
+                <button id="btn-note" class="btn secondary" title="Note Mode">✏️</button>
+                <button id="btn-smart" class="btn secondary" title="Smart Annotations">💡</button>
+                <span id="sudoku-timer" class="timer-display">⏱ 0s</span>
+            </div>
+        </div>
+
+        <div class="board-wrapper">
+            <div id="sudoku-board" class="sudoku-board"></div>
+        </div>
+
+        <div class="numpad" id="numpad">
+            <button class="num-btn" data-num="1">1</button>
+            <button class="num-btn" data-num="2">2</button>
+            <button class="num-btn" data-num="3">3</button>
+            <button class="num-btn" data-num="4">4</button>
+            <button class="num-btn" data-num="5">5</button>
+            <button class="num-btn" data-num="6">6</button>
+            <button class="num-btn" data-num="7">7</button>
+            <button class="num-btn" data-num="8">8</button>
+            <button class="num-btn" data-num="9">9</button>
+            <button class="num-btn erase-btn" data-num="0">⌫</button>
+        </div>
+    </div>
+
+    <!-- Wrong Move Modal -->
+    <div id="wrongModal" class="modal">
+        <div class="modal-content">
+            <h2 id="wrong-title">Wrong Number!</h2>
+            <p id="wrong-msg">Please undo your move to continue.</p>
+            <p id="wrong-undos" style="font-weight:bold; margin-bottom:1rem;"></p>
+            <div class="modal-btns">
+                <button id="btn-undo-modal" class="btn">Undo</button>
+                <button id="btn-new-wrong" class="btn danger">New Game</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Win Modal -->
+    <div id="winModal" class="modal">
+        <div class="modal-content">
+            <h2 id="win-title">Congratulations!</h2>
+            <p id="win-msg">You solved the puzzle!</p>
+            <button id="btn-new-win" class="btn" style="width:100%; margin-top:1rem;">New Game</button>
+        </div>
+    </div>
+
+    <!-- Out of Undos Modal -->
+    <div id="noUndoModal" class="modal">
+        <div class="modal-content">
+            <h2 id="noundo-title">No More Undos!</h2>
+            <p id="noundo-msg">You've used all your undo rights. Keep going — you can do it!</p>
+            <div class="modal-btns" style="margin-top:1rem;">
+                <button id="btn-continue-noundo" class="btn secondary">Continue Anyway</button>
+                <button id="btn-new-noundo" class="btn">New Game</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="/sw-register.js"></script>
+</body>
+</html>

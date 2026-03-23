@@ -1,11 +1,12 @@
-:root { --bg-dark: #121212; --card-bg: #1e1e1e; --text-main: #fff; --white-sq: #f0d9b5; --black-sq: #b58863; --highlight: rgba(155, 199, 0, 0.5); --primary: #3949ab; --danger: #e53935; }
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; user-select: none; }
+:root { --bg-dark: #1a1a2e; --card-bg: #16213e; --text-main: #fff; --white-sq: #f0d9b5; --black-sq: #b58863; --highlight: rgba(155, 199, 0, 0.5); --primary: #3949ab; --danger: #e53935; --accent: #e94560; }
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; user-select: none; }
 body { background: var(--bg-dark); color: var(--text-main); height: 100dvh; display: flex; flex-direction: column; overflow: hidden; padding: env(safe-area-inset-top) 1rem 1rem; }
 .app-container { max-width: 800px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; height: 100%; gap: 10px;}
 header { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; flex-shrink:0;}
 .header-left { display: flex; align-items: center; gap: 10px; }
 .global-hub-btn { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: rgba(255,255,255,0.1); border-radius: 8px; text-decoration: none; font-size: 1.5rem; }
-select { background: var(--card-bg); color: #fff; padding: 5px; border-radius: 5px; }
+select { background: var(--card-bg); color: #fff; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--accent); font-size: 0.95rem; outline: none; }
+h1 { font-size: 1.8rem; color: var(--accent); }
 
 details.mobile-details { width: 100%; background: var(--card-bg); border-radius: 8px; flex-shrink:0;}
 details.mobile-details summary { padding: 12px; font-weight: bold; text-align: center; cursor: pointer; outline: none; list-style: none; }
@@ -13,7 +14,7 @@ details.mobile-details summary::-webkit-details-marker { display: none; }
 details.mobile-details[open] summary { border-bottom: 1px solid rgba(255,255,255,0.1); }
 .control-panel { display: flex; flex-direction: column; gap: 10px; padding: 10px; }
 .tabs { display: flex; gap: 5px; width: 100%; }
-.tabs button { flex: 1; padding: 10px; background: #333; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
+.tabs button { flex: 1; padding: 10px; background: var(--card-bg); color: #aaa; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
 .tabs button.active { background: var(--primary); font-weight: bold; }
 
 .btn { flex: 1; padding: 12px; font-weight: bold; border-radius: 8px; border: none; background: var(--primary); color: #fff; cursor: pointer; }
@@ -22,8 +23,15 @@ details.mobile-details[open] summary { border-bottom: 1px solid rgba(255,255,255
 
 .status-bar { background: var(--card-bg); width: 100%; text-align: center; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 1.2rem; flex-shrink:0;}
 
-.board-wrapper { flex: 1; display: flex; justify-content: center; align-items: center; min-height: 0; width: 100%; padding: 5px 0; }
-.board { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); width: 100%; height: 100%; max-width: 100vmin; max-height: 100vmin; aspect-ratio: 1; border: 4px solid var(--card-bg); margin: auto;}
+.board-wrapper { flex: 1; display: flex; justify-content: center; align-items: center; min-height: 0; width: 100%; padding: 5px 0; overflow: hidden; }
+.board {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    /* width and height set equal by JS — always square */
+    border: 4px solid var(--card-bg);
+    flex-shrink: 0;
+}
 .game-over-overlay {
     display: none;
     position: absolute;

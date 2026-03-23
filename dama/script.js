@@ -8,17 +8,18 @@ let selIdx = null, validPaths = [], jumpPath = [];
 document.addEventListener("DOMContentLoaded", () => {
     initDB().then(() => loadState().then(() => {
         document.getElementById('langPicker').value = lang;
-        if(!state.board) initBoard('tr'); else { document.getElementById('tab-tr').className=state.mode==='tr'?'active':''; document.getElementById('tab-int').className=state.mode==='int'?'active':''; render(); }
+        if(!state.board) { initBoard('tr'); } else { document.getElementById('tab-tr').className=state.mode==='tr'?'active':''; document.getElementById('tab-int').className=state.mode==='int'?'active':''; }
+        requestAnimationFrame(() => requestAnimationFrame(render));
         updateUI();
     }));
     document.getElementById('langPicker').addEventListener('change', e => { lang = e.target.value; saveState(); updateUI(); render(); });
-    document.getElementById('btn-new').onclick = () => { if(confirm("New game?")){ initBoard(state.mode); saveState(); render(); }};
+    document.getElementById('btn-new').onclick = () => { initBoard(state.mode); saveState(); render(); };
     document.getElementById('btn-undo').onclick = undoMove;
     document.getElementById('btn-del').onclick = resetDB;
+    window.addEventListener('resize', () => { sizeBoard(); });
 });
 
 function switchMode(m) {
-    if(state.hist && state.hist.length>0) if(!confirm("Reset game?")) return;
     document.getElementById('tab-tr').className= m==='tr'?'active':'';
     document.getElementById('tab-int').className= m==='int'?'active':'';
     initBoard(m); saveState(); render();
@@ -170,7 +171,17 @@ function checkWin() {
     }
 }
 
+function sizeBoard() {
+    const wrapper = document.querySelector('.board-wrapper');
+    const board = document.getElementById('board');
+    if (!wrapper || !board) return;
+    const s = Math.min(wrapper.clientWidth, wrapper.clientHeight) - 10;
+    board.style.width  = s + 'px';
+    board.style.height = s + 'px';
+}
+
 function render() {
+    sizeBoard();
     let b = document.getElementById('board'); b.innerHTML = '';
     let nextStepIdxs = validPaths.map(vp => vp.path[jumpPath.length]);
 
@@ -204,5 +215,5 @@ function updateUI() {
 }
 function initDB() { return new Promise(res => { let req=indexedDB.open('damaGameDB', 1); req.onupgradeneeded=e=>{db=e.target.result;db.createObjectStore('s',{keyPath:'id'})}; req.onsuccess=e=>{db=e.target.result;res()} }); }
 function saveState() { if(db) db.transaction('s','readwrite').objectStore('s').put({id:'cur', st:JSON.stringify({s:state, l:lang})}); }
-function loadState() { return new Promise(res => { if(!db)res(); let r=db.transaction('s','readonly').objectStore('s').get('cur'); r.onsuccess=()=>{if(r.result){let p=JSON.parse(r.result.st);state=p.s;lang=p.l;} res()} }); }
+function loadState() { return new Promise(res => { if(!db){res();return;} let r=db.transaction('s','readonly').objectStore('s').get('cur'); r.onsuccess=()=>{if(r.result){let p=JSON.parse(r.result.st);state=p.s;lang=p.l;} res()}; r.onerror=()=>res(); }); }
 function resetDB() { if(confirm("Delete data?")){indexedDB.deleteDatabase('damaGameDB'); location.reload();} }

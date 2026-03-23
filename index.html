@@ -55,6 +55,8 @@
             <button class="db-btn" onclick="clearDB('chessGameDB')" id="btn-del-chess">Reset Chess</button>
             <button class="db-btn" onclick="clearDB('damaGameDB')" id="btn-del-dama">Reset Checkers</button>
             <button class="db-btn" onclick="clearDB('unoGameDB')" id="btn-del-uno">Reset UNO</button>
+            <button class="db-btn" onclick="clearDB('sudokuGameDB')" id="btn-del-sudoku">Reset Sudoku</button>
+            <button class="db-btn" onclick="clearDB('minefieldGameDB')" id="btn-del-minefield">Reset Minefield</button>
             <button class="db-btn danger-all" onclick="clearAllDBs()" id="btn-del-all">DELETE ALL GAME DATA</button>
         </div>
     </details>
@@ -75,6 +77,12 @@
         <a href="uno/index.html" class="game-card">
             <div class="game-icon">🃏</div><h2 id="titleUno">UNO</h2><p id="descUno">Pass-the-phone card game. 2-10 players.</p>
         </a>
+        <a href="sudoku/index.html" class="game-card">
+            <div class="game-icon">🔢</div><h2 id="titleSudoku">Sudoku</h2><p id="descSudoku">Classic number puzzle. 3 difficulty levels.</p>
+        </a>
+        <a href="minefield/index.html" class="game-card">
+            <div class="game-icon">💣</div><h2 id="titleMinefield">Minefield</h2><p id="descMinefield">Classic Minesweeper. Customizable grid.</p>
+        </a>
     </div>
 
     <script>
@@ -84,8 +92,12 @@
                 descTavla: "Backgammon. Offline, 2 players. (TR Only)", titleSpy: "Spyfall", descSpy: "Pass-the-phone social deduction game.", 
                 titleChess: "Chess", descChess: "Classic 8x8 Chess. 2 players.", titleDama: "Checkers", descDama: "Turkish & International Checkers.", 
                 titleUno: "UNO", descUno: "Pass-the-phone card game. 2-10 players.",
-                dataManager: "⚙️ Data Management (Reset Games)", delTavla: "Reset Tavla", delSpy: "Reset Casus Kim?", 
-                delChess: "Reset Chess", delDama: "Reset Checkers", delUno: "Reset UNO", delAll: "DELETE ALL GAME DATA", alertDeleted: "Data successfully deleted!",
+                titleSudoku: "Sudoku", descSudoku: "Classic number puzzle. 3 difficulty levels.",
+                titleMinefield: "Minefield", descMinefield: "Classic Minesweeper. Customizable grid.",
+                dataManager: "⚙️ Data Management (Reset Games)", delTavla: "Reset Tavla", delSpy: "Reset Casus Kim?",
+                delChess: "Reset Chess", delDama: "Reset Checkers", delUno: "Reset UNO",
+                delSudoku: "Reset Sudoku", delMinefield: "Reset Minefield",
+                delAll: "DELETE ALL GAME DATA", alertDeleted: "Data successfully deleted!",
                 errBlocked: "Deletion Blocked! Please close any open game tabs (or force close the app) and try again.",
                 errBlockedSome: "Some deletions were blocked! Please close any open game tabs and try again."
             },
@@ -94,8 +106,12 @@
                 descTavla: "Erkek ve Kız Tavlası. Çevrimdışı, 2 kişilik.", titleSpy: "Casus Kim?", descSpy: "Cihazı elden ele gezdirerek oynanan sosyal çıkarım oyunu.", 
                 titleChess: "Satranç", descChess: "Klasik 8x8 Satranç. 2 kişilik.", titleDama: "Dama", descDama: "Türk Daması ve Uluslararası Dama.", 
                 titleUno: "UNO", descUno: "Cihazı devrederek oynanan kart oyunu. 2-10 oyuncu.",
-                dataManager: "⚙️ Veri Yönetimi (Oyunları Sıfırla)", delTavla: "Tavla Sıfırla", delSpy: "Casus Kim? Sıfırla", 
-                delChess: "Satranç Sıfırla", delDama: "Dama Sıfırla", delUno: "UNO Sıfırla", delAll: "TÜM OYUN VERİLERİNİ SİL", alertDeleted: "Veriler başarıyla silindi!",
+                titleSudoku: "Sudoku", descSudoku: "Klasik sayı bulmacası. 3 zorluk seviyesi.",
+                titleMinefield: "Mayın Tarlası", descMinefield: "Klasik Mayın Tarlası. Özelleştirilebilir ızgara.",
+                dataManager: "⚙️ Veri Yönetimi (Oyunları Sıfırla)", delTavla: "Tavla Sıfırla", delSpy: "Casus Kim? Sıfırla",
+                delChess: "Satranç Sıfırla", delDama: "Dama Sıfırla", delUno: "UNO Sıfırla",
+                delSudoku: "Sudoku Sıfırla", delMinefield: "Mayın Tarlası Sıfırla",
+                delAll: "TÜM OYUN VERİLERİNİ SİL", alertDeleted: "Veriler başarıyla silindi!",
                 errBlocked: "İşlem engellendi! Lütfen arka planda veya başka sekmede açık olan oyunu kapatıp tekrar deneyin.",
                 errBlockedSome: "Bazı silme işlemleri engellendi! Lütfen açık olan oyun sekmelerini kapatıp tekrar deneyin."
             }
@@ -103,12 +119,29 @@
         const langPicker = document.getElementById('langPicker');
         let currentLang = 'en';
 
+        const keyToId = {
+            hubTitle: 'hubTitle', hubSubtitle: 'hubSubtitle',
+            descTavla: 'descTavla', titleSpy: 'titleSpy', descSpy: 'descSpy',
+            titleChess: 'titleChess', descChess: 'descChess',
+            titleDama: 'titleDama', descDama: 'descDama',
+            titleUno: 'titleUno', descUno: 'descUno',
+            titleSudoku: 'titleSudoku', descSudoku: 'descSudoku',
+            titleMinefield: 'titleMinefield', descMinefield: 'descMinefield',
+            dataManager: 'ui-data-manager',
+            delTavla: 'btn-del-tavla', delSpy: 'btn-del-spy',
+            delChess: 'btn-del-chess', delDama: 'btn-del-dama', delUno: 'btn-del-uno',
+            delSudoku: 'btn-del-sudoku', delMinefield: 'btn-del-minefield',
+            delAll: 'btn-del-all'
+        };
+
         function setLang(lang) {
             currentLang = lang;
             document.documentElement.lang = lang;
-            Object.keys(dict[lang]).forEach(k => { 
-                const el = document.getElementById(k === 'dataManager' ? 'ui-data-manager' : (k.startsWith('del') && k !== 'delAll' && k !== 'alertDeleted' && k !== 'errBlocked' && k !== 'errBlockedSome' ? 'btn-' + k.replace(/([A-Z])/g, "-$1").toLowerCase() : (k === 'delAll' ? 'btn-del-all' : k)));
-                if(el) el.innerText = dict[lang][k]; 
+            Object.keys(dict[lang]).forEach(k => {
+                const id = keyToId[k];
+                if (!id) return;
+                const el = document.getElementById(id);
+                if (el) el.innerText = dict[lang][k];
             });
             localStorage.setItem('hubLang', lang);
         }
@@ -149,7 +182,9 @@
                     deleteDatabasePromise('casusKimGameDB'),
                     deleteDatabasePromise('chessGameDB'),
                     deleteDatabasePromise('damaGameDB'),
-                    deleteDatabasePromise('unoGameDB')
+                    deleteDatabasePromise('unoGameDB'),
+                    deleteDatabasePromise('sudokuGameDB'),
+                    deleteDatabasePromise('minefieldGameDB')
                 ]);
 
                 const anyBlocked = results.some(res => res.blocked);

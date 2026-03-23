@@ -1,15 +1,18 @@
-const CACHE_NAME = 'web-games-cache-v1';
+const CACHE_NAME = 'web-games-cache-v3';
 const ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
   '/favicon.png',
   '/apple-touch-icon.png',
+  '/sw-register.js',
   '/tavla/index.html', '/tavla/script.js', '/tavla/style.css',
   '/casus-kim/index.html', '/casus-kim/script.js', '/casus-kim/style.css',
   '/chess/index.html', '/chess/script.js', '/chess/style.css',
   '/dama/index.html', '/dama/script.js', '/dama/style.css',
-  '/uno/index.html', '/uno/script.js', '/uno/style.css'
+  '/uno/index.html', '/uno/script.js', '/uno/style.css',
+  '/sudoku/index.html', '/sudoku/script.js', '/sudoku/style.css',
+  '/minefield/index.html', '/minefield/script.js', '/minefield/style.css'
 ];
 
 self.addEventListener('install', (event) => {
