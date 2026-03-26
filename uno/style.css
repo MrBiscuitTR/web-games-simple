@@ -1,11 +1,11 @@
 :root { --bg-dark: #121212; --card-bg: #1e1e1e; --text-main: #fff; --primary: #3949ab; --danger: #e53935; --c-red: #d32f2f; --c-blue: #1976d2; --c-green: #388e3c; --c-yellow: #fbc02d; }
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; user-select: none; }
-body { background: var(--bg-dark); color: var(--text-main); height: 100dvh; display: flex; flex-direction: column; overflow: hidden; padding: env(safe-area-inset-top) 1rem 1rem; }
+body { background: var(--bg-dark); color: var(--text-main); height: 100dvh; display: flex; flex-direction: column; overflow: hidden; padding: env(safe-area-inset-top) 1rem 1rem; touch-action: manipulation; }
 .app-container { max-width: 800px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; height: 100%; }
 header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; flex-shrink: 0;}
 .header-left { display: flex; align-items: center; gap: 10px; }
 .global-hub-btn { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: rgba(255,255,255,0.1); border-radius: 8px; text-decoration: none; font-size: 1.5rem; }
-select { background: var(--card-bg); color: #fff; padding: 5px; border-radius: 5px; }
+select { background: var(--card-bg); color: #fff; padding: 5px; border-radius: 5px; touch-action: manipulation; }
 
 .screen { display: none; flex: 1; flex-direction: column; }
 .screen.active { display: flex; }
@@ -14,8 +14,8 @@ select { background: var(--card-bg); color: #fff; padding: 5px; border-radius: 5
 
 /* Stepper & Buttons */
 .stepper { display: flex; align-items: center; justify-content: center; gap: 15px; margin: 20px 0; font-size: 1.5rem; font-weight: bold; }
-.stepper button { width: 50px; height: 50px; font-size: 1.8rem; background: var(--primary); border: none; color: #fff; border-radius: 8px; }
-.btn { padding: 15px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; border: none; background: var(--primary); color: #fff; cursor: pointer; width: 100%; transition: 0.1s; }
+.stepper button { width: 50px; height: 50px; font-size: 1.8rem; background: var(--primary); border: none; color: #fff; border-radius: 8px; touch-action: manipulation; }
+.btn { padding: 15px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; border: none; background: var(--primary); color: #fff; cursor: pointer; width: 100%; transition: 0.1s; touch-action: manipulation; }
 .btn:active { transform: scale(0.98); }
 .btn.danger { background: var(--danger); }
 .btn.small { width: auto; padding: 10px 15px; font-size: 1rem; }
@@ -34,7 +34,7 @@ select { background: var(--card-bg); color: #fff; padding: 5px; border-radius: 5
 
 /* Collapsible */
 details.mobile-details { width: 100%; background: var(--card-bg); border-radius: 8px; flex-shrink: 0;}
-details.mobile-details summary { padding: 12px; font-weight: bold; text-align: center; cursor: pointer; outline: none; list-style: none; }
+details.mobile-details summary { padding: 12px; font-weight: bold; text-align: center; cursor: pointer; outline: none; list-style: none; touch-action: manipulation; }
 details.mobile-details summary::-webkit-details-marker { display: none; }
 details.mobile-details[open] summary { border-bottom: 1px solid rgba(255,255,255,0.1); }
 details.mobile-details div { padding: 10px; }

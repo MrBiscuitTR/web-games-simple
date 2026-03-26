@@ -23,6 +23,7 @@ body {
     flex-direction: column;
     overflow: hidden;
     padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+    touch-action: manipulation;
 }
 
 .app-container {
@@ -59,6 +60,7 @@ select {
     background: var(--card); color: #fff;
     padding: 6px 10px; border-radius: 6px;
     border: 1px solid var(--accent); font-size: 0.95rem; outline: none;
+    touch-action: manipulation;
 }
 
 .controls-bar { flex-shrink: 0; }
@@ -80,6 +82,7 @@ select {
     font-size: 0.9rem;
     cursor: pointer;
     transition: 0.2s;
+    touch-action: manipulation;
 }
 .preset-btn.active { background: var(--primary); color: #fff; }
 .preset-btn:active { transform: scale(0.97); }
@@ -100,7 +103,7 @@ select {
     gap: 10px;
 }
 .custom-row label { min-width: 55px; font-size: 0.9rem; color: #aaa; }
-.custom-row input[type=range] { flex: 1; accent-color: var(--primary); }
+.custom-row input[type=range] { flex: 1; accent-color: var(--primary); touch-action: manipulation; }
 .custom-row span { min-width: 30px; text-align: right; font-weight: bold; }
 
 .status-bar {
@@ -134,6 +137,7 @@ select {
     cursor: pointer;
     transition: 0.2s;
     white-space: nowrap;
+    touch-action: manipulation;
 }
 .btn:active { transform: scale(0.97); }
 .btn.secondary { background: #2c3e6b; }
