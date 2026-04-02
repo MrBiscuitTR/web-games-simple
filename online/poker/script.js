@@ -1,0 +1,1477 @@
+/**
+ * TEXAS HOLD'EM POKER — Offline + Firebase Online Multiplayer
+ * Features: offline bots, online lobbies, session tracking, full hand eval,
+ * side pots, showdown, chip animations, move logging to Firestore.
+ *
+ * Online authority model:
+ *   - Host is the authoritative dealer: runs all game logic, pushes state.
+ *   - Non-hosts only apply remote state from Firestore; they never run game logic.
+ *   - Each non-host shows their own action bar only when `activeIdx === myUID`.
+ */
+
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import {
+    getFirestore, doc, setDoc, updateDoc, onSnapshot, serverTimestamp,
+    getDoc, deleteDoc, addDoc, collection
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+// ─── Firebase ─────────────────────────────────────────────────────────────────
+const firebaseConfig = {
+    apiKey: "AIzaSyAqELbK3THW2rmnKW4jsrEUijXuxx3bFDU",
+    authDomain: "online-games-sync.firebaseapp.com",
+    projectId: "online-games-sync",
+    storageBucket: "online-games-sync.firebasestorage.app",
+    messagingSenderId: "405886206510",
+    appId: "1:405886206510:web:03cce79d338056381395bf"
+};
+const fbApp = initializeApp(firebaseConfig);
+const fdb = getFirestore(fbApp);
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+const SUITS = ['♠', '♥', '♦', '♣'];
+const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+const RANK_VAL = Object.fromEntries(RANKS.map((r, i) => [r, i + 2]));
+const SMALL_BLIND = 25;
+const BIG_BLIND = 50;
+const BOT_THINK_MS = 900;
+const TURN_TIMEOUT_S = 30;
+
+// ─── Modes ────────────────────────────────────────────────────────────────────
+let isOnline = false;
+let amHost = false;
+let myUID = null;       // seat index in online game
+let myName = '';
+let lobbyId = null;
+let unsubLobby = null;
+// Track last pushed state string to skip echo-backs
+let lastPushedStateStr = '';
+
+// ─── Game state ───────────────────────────────────────────────────────────────
+let G = null;          // Full game state object
+let turnTimer = null;
+let sessionMoves = []; // For Firestore logging
+let sessionStartTime = null;
+let botTimeouts = [];
+
+// ─── IndexedDB (offline only) ─────────────────────────────────────────────────
+let pokerDB = null;
+function initPokerDB() {
+    return new Promise((resolve) => {
+        const req = indexedDB.open('pokerGameDB', 1);
+        req.onupgradeneeded = (e) => {
+            e.target.result.createObjectStore('saves', { keyPath: 'id' });
+        };
+        req.onsuccess = (e) => { pokerDB = e.target.result; resolve(); };
+        req.onerror = () => resolve(); // non-fatal
+    });
+}
+function savePokerState() {
+    if (!pokerDB || isOnline || !G) return;
+    // Don't persist mid-showdown — restore to start of next round
+    if (G.stage === 'showdown') return;
+    const tx = pokerDB.transaction('saves', 'readwrite');
+    tx.objectStore('saves').put({ id: 'current', myUID, myName, state: JSON.stringify(G) });
+}
+function loadPokerState() {
+    return new Promise((resolve) => {
+        if (!pokerDB) return resolve(null);
+        const tx = pokerDB.transaction('saves', 'readonly');
+        const req = tx.objectStore('saves').get('current');
+        req.onsuccess = () => {
+            if (req.result) {
+                try { resolve({ myUID: req.result.myUID, myName: req.result.myName, state: JSON.parse(req.result.state) }); }
+                catch { resolve(null); }
+            } else resolve(null);
+        };
+        req.onerror = () => resolve(null);
+    });
+}
+
+// ─── UI helpers ───────────────────────────────────────────────────────────────
+window.showTab = (tab) => {
+    document.getElementById('tabOfflineContent').style.display = tab === 'offline' ? 'flex' : 'none';
+    document.getElementById('tabOnlineContent').style.display = tab === 'online' ? 'flex' : 'none';
+    document.getElementById('tabOffline').className = tab === 'offline' ? 'tab-btn active' : 'tab-btn';
+    document.getElementById('tabOnline').className = tab === 'online' ? 'tab-btn active' : 'tab-btn';
+};
+
+window.toggleMenu = () => {
+    const o = document.getElementById('menuOverlay');
+    o.style.display = o.style.display === 'none' ? 'flex' : 'none';
+};
+
+window.showRules = () => {
+    document.getElementById('menuOverlay').style.display = 'none';
+    document.getElementById('rulesModal').style.display = 'flex';
+};
+
+window.confirmRestart = () => {
+    if (confirm('Start a new session? Current stacks will reset.')) {
+        document.getElementById('menuOverlay').style.display = 'none';
+        if (isOnline) {
+            if (amHost) hostStartOnlineGame();
+        } else {
+            startOfflineGame();
+        }
+    }
+};
+
+// ─── OFFLINE START ────────────────────────────────────────────────────────────
+window.startOfflineGame = async () => {
+    const name = document.getElementById('offlineName').value.trim() || 'You';
+    const stack = parseInt(document.getElementById('startingStack').value) || 1000;
+    const bots = parseInt(document.getElementById('botCount').value) || 2;
+    isOnline = false;
+    myUID = 0;
+    myName = name;
+
+    document.getElementById('startScreen').style.display = 'none';
+    document.getElementById('gameScreen').style.display = 'flex';
+    document.getElementById('menuLeave').style.display = 'none';
+    document.getElementById('onlineIndicator').style.display = 'none';
+
+    await initPokerDB();
+
+    // Try to restore saved session
+    const saved = await loadPokerState();
+    if (saved && saved.state && saved.state.players) {
+        myUID = saved.myUID;
+        myName = saved.myName;
+        G = saved.state;
+        G.stage = 'preflop';
+        sessionMoves = [];
+        sessionStartTime = Date.now();
+        renderGame();
+        startRound();
+        return;
+    }
+
+    const players = [{ id: 0, name, stack, isBot: false, isHuman: true }];
+    const botNames = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank', 'Grace', 'Hank', 'Ivy'];
+    for (let i = 0; i < bots; i++) {
+        players.push({ id: i + 1, name: botNames[i], stack, isBot: true, isHuman: false });
+    }
+    initSession(players);
+};
+
+// ─── ONLINE LOBBY ─────────────────────────────────────────────────────────────
+window.createOnlineLobby = async () => {
+    const name = document.getElementById('onlineName').value.trim() || 'Host';
+    myName = name;
+    amHost = true;
+    myUID = 0;
+    isOnline = true;
+    lobbyId = genCode();
+
+    setOnlineStatus('Creating lobby...');
+    try {
+        await setDoc(doc(fdb, 'poker_lobbies', lobbyId), {
+            host: name,
+            players: [{ id: 0, name, isBot: false }],
+            started: false,
+            state: null,
+            createdAt: serverTimestamp()
+        });
+        document.getElementById('onlineLobbyCode').style.display = 'flex';
+        document.getElementById('onlineLobbyCodeVal').innerText = lobbyId;
+        document.getElementById('onlineBotRow').style.display = 'flex';
+        document.getElementById('onlineStartGameBtn').style.display = 'block';
+        document.getElementById('onlinePlayerList').style.display = 'flex';
+        setOnlineStatus('');
+        subscribeLobby(lobbyId);
+    } catch (e) { setOnlineStatus('Error: ' + e.message); }
+};
+
+window.joinOnlineLobby = async () => {
+    const name = document.getElementById('onlineName').value.trim() || 'Player';
+    const code = document.getElementById('joinCode').value.trim().toUpperCase();
+    if (!code) { setOnlineStatus('Enter a lobby code.'); return; }
+    setOnlineStatus('Joining...');
+    try {
+        const ref = doc(fdb, 'poker_lobbies', code);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) { setOnlineStatus('Lobby not found.'); return; }
+        const data = snap.data();
+        if (data.started) { setOnlineStatus('Game already started.'); return; }
+        if (data.players.length >= 10) { setOnlineStatus('Lobby is full (10 players max).'); return; }
+
+        myUID = data.players.length;
+        myName = name;
+        amHost = false;
+        isOnline = true;
+        lobbyId = code;
+
+        const newPlayers = [...data.players, { id: myUID, name, isBot: false }];
+        await updateDoc(ref, { players: newPlayers });
+        setOnlineStatus('');
+        document.getElementById('onlinePlayerList').style.display = 'flex';
+        document.getElementById('onlineWaitMsg').style.display = 'flex';
+        subscribeLobby(code);
+    } catch (e) { setOnlineStatus('Error: ' + e.message); }
+};
+
+window.hostStartOnlineGame = async () => {
+    if (!lobbyId || !amHost) return;
+    const stack = 1000;
+    const snap = await getDoc(doc(fdb, 'poker_lobbies', lobbyId));
+    const data = snap.data();
+    let players = data.players.map((p, i) => ({ id: i, name: p.name, stack, isBot: p.isBot || false, isHuman: !p.isBot }));
+
+    const botCount = parseInt(document.getElementById('onlineBotCount').value) || 0;
+    const botNames = ['Bot-A', 'Bot-B', 'Bot-C', 'Bot-D', 'Bot-E', 'Bot-F', 'Bot-G', 'Bot-H'];
+    for (let i = 0; i < botCount && players.length < 10; i++) {
+        players.push({ id: players.length, name: botNames[i], stack, isBot: true, isHuman: false });
+    }
+
+    await updateDoc(doc(fdb, 'poker_lobbies', lobbyId), { started: true, players });
+};
+
+function subscribeLobby(code) {
+    if (unsubLobby) unsubLobby();
+    let gameInitialized = false;
+
+    unsubLobby = onSnapshot(doc(fdb, 'poker_lobbies', code), (snap) => {
+        if (!snap.exists()) {
+            alert('Lobby closed.'); window.location.reload(); return;
+        }
+        const data = snap.data();
+
+        // Update player list in lobby screen
+        if (document.getElementById('startScreen').style.display !== 'none') {
+            updateOnlinePlayerList(data.players);
+        }
+
+        // Game started — transition to game screen
+        if (data.started && !gameInitialized) {
+            gameInitialized = true;
+            const stack = 1000;
+            const players = data.players.map((p, i) => ({
+                id: i, name: p.name, stack,
+                isBot: p.isBot || false, isHuman: !p.isBot
+            }));
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'flex';
+            document.getElementById('menuLeave').style.display = 'block';
+            document.getElementById('onlineIndicator').style.display = 'flex';
+
+            if (amHost) {
+                // Host runs full game logic
+                initSession(players);
+            } else {
+                // Non-host: initialize G with player list but wait for state from host
+                initSessionPassive(players);
+            }
+            return;
+        }
+
+        // In-game state updates — non-host applies remote state
+        if (data.state && document.getElementById('gameScreen').style.display !== 'none') {
+            if (!amHost) {
+                applyRemoteState(data.state);
+            }
+        }
+
+        // Host: if state comes back (echo), do nothing — host only pushes
+    });
+}
+
+// Non-host initializes G with player skeletons, waits for host state
+function initSessionPassive(players) {
+    sessionMoves = [];
+    sessionStartTime = Date.now();
+    G = {
+        players: players.map(p => ({ ...p, holeCards: [], bet: 0, folded: false, allIn: false, showHand: false, _actedThisStreet: false })),
+        deck: [],
+        community: [],
+        pot: 0,
+        sidePots: [],
+        dealerIdx: 0,
+        stage: 'waiting',
+        activeIdx: -1,
+        currentBet: 0,
+        round: 0,
+        sessionOver: false
+    };
+    renderGame();
+}
+
+function updateOnlinePlayerList(players) {
+    const list = document.getElementById('onlinePlayerList');
+    if (!list || list.style.display === 'none') return;
+    list.innerHTML = players.map(p =>
+        `<div class="player-list-item"><div class="player-dot"></div>${p.name}${p.isBot ? ' 🤖' : ''}</div>`
+    ).join('');
+}
+
+window.copyOnlineCode = () => {
+    navigator.clipboard?.writeText(lobbyId).catch(() => {});
+    const btn = document.querySelector('.copy-btn');
+    if (btn) { btn.innerText = 'Copied!'; setTimeout(() => btn.innerText = 'Copy', 1500); }
+};
+
+window.leaveOnlineGame = async () => {
+    if (confirm('Leave the game?')) {
+        if (unsubLobby) { unsubLobby(); unsubLobby = null; }
+        if (lobbyId && amHost) {
+            try { await deleteDoc(doc(fdb, 'poker_lobbies', lobbyId)); } catch (_) {}
+        }
+        window.location.reload();
+    }
+};
+
+function setOnlineStatus(msg) {
+    const el = document.getElementById('onlineStatus');
+    if (el) el.innerText = msg;
+}
+
+// ─── SESSION INIT ─────────────────────────────────────────────────────────────
+function initSession(players) {
+    sessionMoves = [];
+    sessionStartTime = Date.now();
+    G = {
+        players: players.map(p => ({ ...p, holeCards: [], bet: 0, folded: false, allIn: false, showHand: false })),
+        deck: [],
+        community: [],
+        pot: 0,
+        sidePots: [],
+        dealerIdx: 0,
+        stage: 'waiting',
+        activeIdx: -1,
+        currentBet: 0,
+        round: 0,
+        sessionOver: false
+    };
+    startRound();
+}
+
+// ─── ROUND MANAGEMENT ─────────────────────────────────────────────────────────
+function startRound() {
+    lastPushedStateStr = '';
+    // Reset render caches so new cards are drawn fresh
+    const area = document.getElementById('myCardsArea');
+    if (area) { area.innerHTML = ''; area.dataset.cardKey = ''; }
+    const cc = document.getElementById('communityCards');
+    if (cc) cc.innerHTML = '';
+    const ring = document.getElementById('playersRing');
+    if (ring) ring.innerHTML = ''; // force skeleton rebuild on new round
+    clearBotTimeouts();
+    clearTurnTimer();
+    G.round++;
+    G.deck = shuffle(buildDeck());
+    G.community = [];
+    G.pot = 0;
+    G.sidePots = [];
+    G.stage = 'preflop';
+    G.currentBet = BIG_BLIND;
+
+    G.players.forEach(p => {
+        p.holeCards = [];
+        p.bet = 0;
+        p.folded = p.stack <= 0;
+        p.allIn = false;
+        p.showHand = false;
+        p._actedThisStreet = false;
+    });
+
+    const alive = G.players.filter(p => p.stack > 0);
+    if (alive.length <= 1) { endSession(); return; }
+
+    do { G.dealerIdx = (G.dealerIdx + 1) % G.players.length; }
+    while (G.players[G.dealerIdx].stack <= 0);
+
+    const activePlayers = getActivePlayers();
+    if (activePlayers.length < 2) { endSession(); return; }
+
+    const sbIdx = nextActiveFrom((G.dealerIdx + 1) % G.players.length);
+    const bbIdx = nextActiveFrom((sbIdx + 1) % G.players.length);
+
+    postBlind(sbIdx, SMALL_BLIND);
+    postBlind(bbIdx, BIG_BLIND);
+
+    G.players.forEach(p => {
+        if (!p.folded) { p.holeCards = [dealCard(), dealCard()]; }
+    });
+
+    G.players.forEach(p => { p._actedThisStreet = false; });
+
+    G.activeIdx = nextActiveFrom((bbIdx + 1) % G.players.length);
+
+    if (isOnline) pushOnlineState();
+    else savePokerState();
+    renderGame();
+    scheduleCurrentAction();
+}
+
+function postBlind(idx, amount) {
+    const p = G.players[idx];
+    const actual = Math.min(amount, p.stack);
+    p.stack -= actual;
+    p.bet += actual;
+    G.pot += actual;
+    if (p.stack === 0) p.allIn = true;
+    logMove(p.name, actual === amount ? `posts blind $${amount}` : `posts blind $${actual} (all-in)`);
+}
+
+function getActivePlayers() {
+    return G.players.filter(p => !p.folded && p.stack > 0);
+}
+
+function nextActiveFrom(startIdx) {
+    let idx = startIdx % G.players.length;
+    for (let i = 0; i < G.players.length; i++) {
+        const p = G.players[idx];
+        if (!p.folded && (p.stack > 0 || p.allIn)) return idx;
+        idx = (idx + 1) % G.players.length;
+    }
+    return startIdx;
+}
+
+// ─── ACTION DISPATCH ──────────────────────────────────────────────────────────
+function scheduleCurrentAction() {
+    const p = G.players[G.activeIdx];
+    if (!p || p.folded || p.allIn) { advanceAction(); return; }
+
+    if (p.isBot) {
+        // In online mode, only host schedules bot actions
+        if (isOnline && !amHost) return;
+        const t = setTimeout(() => executeBotAction(G.activeIdx), BOT_THINK_MS);
+        botTimeouts.push(t);
+        return;
+    }
+
+    // Human player's turn
+    if (!isOnline || p.id === myUID) {
+        showActionBar(G.activeIdx);
+        startTurnTimer(TURN_TIMEOUT_S, () => playerAction('fold'));
+    } else {
+        hideActionBar();
+    }
+}
+
+function showActionBar(idx) {
+    const p = G.players[idx];
+    const callAmt = G.currentBet - p.bet;
+    const bar = document.getElementById('actionBar');
+    bar.style.display = 'flex';
+
+    const checkCallBtn = document.getElementById('checkCallBtn');
+    if (callAmt <= 0) {
+        checkCallBtn.innerText = 'Check';
+        checkCallBtn.className = 'act-btn check-btn';
+    } else {
+        const actual = Math.min(callAmt, p.stack);
+        checkCallBtn.innerText = `Call $${actual}`;
+        checkCallBtn.className = 'act-btn check-btn';
+    }
+
+    const minRaise = G.currentBet + Math.max(BIG_BLIND, G.currentBet);
+    const maxRaise = p.stack + p.bet;
+    const slider = document.getElementById('raiseSlider');
+    slider.min = Math.min(minRaise, maxRaise);
+    slider.max = maxRaise;
+    slider.value = Math.min(minRaise, maxRaise);
+    syncRaiseInput(slider.value);
+
+    const raiseBtn = document.getElementById('raiseBtn');
+    if (p.stack + p.bet <= G.currentBet) {
+        raiseBtn.style.display = 'none';
+    } else {
+        raiseBtn.style.display = 'flex';
+        raiseBtn.innerText = G.currentBet > 0 ? 'Raise' : 'Bet';
+    }
+
+    document.getElementById('callAmount').innerText = callAmt > 0 ? `To call: $${Math.min(callAmt, p.stack)}` : 'Your turn';
+    document.getElementById('myStack').innerText = `Stack: $${p.stack}`;
+}
+
+function hideActionBar() {
+    document.getElementById('actionBar').style.display = 'none';
+    document.getElementById('raisePanel').style.display = 'none';
+}
+
+window.openRaisePanel = () => {
+    const rp = document.getElementById('raisePanel');
+    rp.style.display = rp.style.display === 'none' ? 'flex' : 'none';
+};
+
+window.setRaisePct = (pct) => {
+    const p = G.players[G.activeIdx];
+    const potBet = Math.round(G.pot * pct / 100) + G.currentBet;
+    const capped = Math.min(potBet, p.stack + p.bet);
+    document.getElementById('raiseSlider').value = capped;
+    syncRaiseInput(capped);
+};
+
+window.setRaiseAllIn = () => {
+    const p = G.players[G.activeIdx];
+    const val = p.stack + p.bet;
+    document.getElementById('raiseSlider').value = val;
+    syncRaiseInput(val);
+};
+
+window.syncRaiseInput = (val) => {
+    document.getElementById('raiseInput').value = val;
+};
+window.syncRaiseSlider = (val) => {
+    document.getElementById('raiseSlider').value = val;
+    syncRaiseInput(val);
+};
+
+window.confirmRaise = () => {
+    const amount = parseInt(document.getElementById('raiseInput').value);
+    if (!isNaN(amount)) playerAction('raise', amount);
+};
+
+window.playerAction = (type, raiseToAmount) => {
+    if (!G) return;
+    const idx = G.activeIdx;
+    const p = G.players[idx];
+    if (!p || p.folded || p.allIn) return;
+    // In online mode, only act if it's this client's seat
+    if (isOnline && p.id !== myUID) return;
+
+    hideActionBar();
+    clearTurnTimer();
+    document.getElementById('raisePanel').style.display = 'none';
+
+    if (isOnline && !amHost) {
+        // Non-host: push action to Firestore for host to process
+        pushPlayerAction(type, raiseToAmount);
+    } else {
+        executeAction(idx, type, raiseToAmount);
+    }
+};
+
+// Non-host pushes their action; host picks it up and executes
+async function pushPlayerAction(type, raiseToAmount) {
+    if (!lobbyId) return;
+    try {
+        await updateDoc(doc(fdb, 'poker_lobbies', lobbyId), {
+            pendingAction: { uid: myUID, type, raiseToAmount: raiseToAmount || null, ts: Date.now() }
+        });
+    } catch (e) { console.error('pushPlayerAction failed:', e); }
+}
+
+function executeAction(idx, type, raiseToAmount) {
+    const p = G.players[idx];
+    const callAmt = G.currentBet - p.bet;
+
+    p._actedThisStreet = true;
+
+    if (type === 'fold') {
+        p.folded = true;
+        showActionIndicator(idx, 'fold', 'Fold');
+        logMove(p.name, 'folds');
+
+    } else if (type === 'check-call') {
+        if (callAmt <= 0) {
+            showActionIndicator(idx, 'check', 'Check');
+            logMove(p.name, 'checks');
+        } else {
+            const actual = Math.min(callAmt, p.stack);
+            p.stack -= actual;
+            p.bet += actual;
+            G.pot += actual;
+            if (p.stack === 0) { p.allIn = true; showActionIndicator(idx, 'allin', 'All-in'); }
+            else showActionIndicator(idx, 'call', `Call $${actual}`);
+            logMove(p.name, `calls $${actual}`);
+        }
+
+    } else if (type === 'raise') {
+        const raiseTo = Math.max(raiseToAmount || G.currentBet * 2, G.currentBet + BIG_BLIND);
+        const raiseAmt = Math.min(raiseTo - p.bet, p.stack);
+        p.stack -= raiseAmt;
+        p.bet += raiseAmt;
+        G.pot += raiseAmt;
+        G.currentBet = Math.max(G.currentBet, p.bet);
+        G.players.forEach((op, oi) => { if (oi !== idx) op._actedThisStreet = false; });
+        if (p.stack === 0) { p.allIn = true; showActionIndicator(idx, 'allin', `All-in $${p.bet}`); }
+        else showActionIndicator(idx, 'raise', `Raise $${p.bet}`);
+        logMove(p.name, `raises to $${p.bet}`);
+    }
+
+    if (isOnline) pushOnlineState();
+    else savePokerState();
+    renderGame();
+
+    setTimeout(() => advanceAction(), 200);
+}
+
+function advanceAction() {
+    const notFolded = G.players.filter(p => !p.folded);
+    if (notFolded.length === 1) { endRound([notFolded[0].id]); return; }
+
+    const n = G.players.length;
+    let nextIdx = (G.activeIdx + 1) % n;
+
+    for (let i = 0; i < n; i++) {
+        const p = G.players[nextIdx];
+
+        if (!p.folded && !p.allIn) {
+            const owes = G.currentBet - p.bet;
+            const hasNotActed = !p._actedThisStreet;
+
+            if (owes > 0 || hasNotActed) {
+                G.activeIdx = nextIdx;
+                renderGame();
+                scheduleCurrentAction();
+                return;
+            }
+        }
+
+        nextIdx = (nextIdx + 1) % n;
+    }
+
+    G.players.forEach(p => { p._actedThisStreet = false; });
+    advanceStage();
+}
+
+function advanceStage() {
+    clearBotTimeouts();
+    clearTurnTimer();
+
+    G.players.forEach(p => { p.bet = 0; p._actedThisStreet = false; });
+    G.currentBet = 0;
+
+    if (G.stage === 'preflop') {
+        G.stage = 'flop';
+        G.community.push(dealCard(), dealCard(), dealCard());
+    } else if (G.stage === 'flop') {
+        G.stage = 'turn';
+        G.community.push(dealCard());
+    } else if (G.stage === 'turn') {
+        G.stage = 'river';
+        G.community.push(dealCard());
+    } else if (G.stage === 'river') {
+        doShowdown();
+        return;
+    }
+
+    G.activeIdx = nextActiveFrom((G.dealerIdx + 1) % G.players.length);
+
+    if (isOnline) pushOnlineState();
+    renderGame();
+
+    const canAct = G.players.filter(p => !p.folded && !p.allIn);
+    if (canAct.length <= 1 && G.stage !== 'river') {
+        setTimeout(advanceStage, 800);
+        return;
+    }
+
+    scheduleCurrentAction();
+}
+
+// ─── SHOWDOWN ─────────────────────────────────────────────────────────────────
+function doShowdown() {
+    G.stage = 'showdown';
+    clearBotTimeouts();
+    clearTurnTimer();
+    hideActionBar();
+
+    const contenders = G.players.filter(p => !p.folded);
+    contenders.forEach(p => { p.showHand = true; });
+
+    const ranked = contenders.map(p => ({
+        p,
+        result: bestHand([...p.holeCards, ...G.community])
+    })).sort((a, b) => compareHands(b.result, a.result));
+
+    const topScore = ranked[0].result.score;
+    const winners = ranked.filter(r => r.result.score === topScore).map(r => r.p);
+
+    const payout = distributePot(winners, contenders);
+
+    logMove('---', `Showdown — ${winners.map(w => w.name).join(', ')} win${winners.length > 1 ? '' : 's'}`);
+
+    if (isOnline) { pushOnlineState(); logSessionToFirestore(); }
+
+    renderGame();
+    showShowdownModal(ranked, payout, winners);
+    animateChips(winners);
+
+    if (isOnline) pushOnlineState();
+}
+
+function distributePot(winners, contenders) {
+    const payout = {};
+    G.players.forEach(p => { payout[p.id] = 0; });
+    const share = Math.floor(G.pot / winners.length);
+    const remainder = G.pot - share * winners.length;
+    winners.forEach(w => { w.stack += share; payout[w.id] = (payout[w.id] || 0) + share; });
+    if (remainder > 0) { winners[0].stack += remainder; payout[winners[0].id] += remainder; }
+    G.pot = 0;
+    return payout;
+}
+
+function endRound(winnerIds) {
+    G.stage = 'showdown';
+    clearBotTimeouts();
+    clearTurnTimer();
+    hideActionBar();
+
+    const winners = G.players.filter(p => winnerIds.includes(p.id));
+    const payout = distributePot(winners, G.players.filter(p => !p.folded));
+
+    logMove('---', `${winners.map(w => w.name).join(', ')} win${winners.length > 1 ? '' : 's'} uncontested`);
+
+    if (isOnline) { pushOnlineState(); logSessionToFirestore(); }
+    renderGame();
+
+    const showdown = G.players.filter(p => !p.folded).map(p => ({
+        p, result: bestHand([...p.holeCards, ...G.community])
+    })).sort((a, b) => compareHands(b.result, a.result));
+
+    showShowdownModal(showdown, payout, winners);
+    animateChips(winners);
+}
+
+window.nextRound = () => {
+    document.getElementById('showdownModal').style.display = 'none';
+    if (isOnline && !amHost) return; // only host drives next round
+    const alive = G.players.filter(p => p.stack > 0);
+    if (alive.length <= 1) { endSession(); return; }
+    startRound();
+    if (isOnline) pushOnlineState();
+};
+
+function endSession() {
+    G.sessionOver = true;
+    if (isOnline) logSessionToFirestore();
+    showSessionModal();
+}
+
+window.startNewSession = () => {
+    document.getElementById('sessionModal').style.display = 'none';
+    if (isOnline) { window.location.reload(); return; }
+    startOfflineGame();
+};
+
+// ─── BOT AI ───────────────────────────────────────────────────────────────────
+function executeBotAction(idx) {
+    const p = G.players[idx];
+    if (!p || p.folded || p.allIn) { advanceAction(); return; }
+
+    const callAmt = G.currentBet - p.bet;
+    const handStrength = estimateHandStrength(p.holeCards, G.community);
+    const rand = Math.random();
+
+    let action = 'fold';
+    if (callAmt === 0) {
+        if (handStrength > 0.7 && rand < 0.5) action = 'raise';
+        else action = 'check-call';
+    } else if (callAmt >= p.stack) {
+        if (handStrength > 0.65) action = 'check-call';
+        else action = 'fold';
+    } else {
+        if (handStrength > 0.8 && rand < 0.4) action = 'raise';
+        else if (handStrength > 0.4) action = 'check-call';
+        else if (rand < 0.1) action = 'check-call';
+        else action = 'fold';
+    }
+
+    let raiseAmt;
+    if (action === 'raise') {
+        const pct = [0.33, 0.5, 0.75, 1.0][Math.floor(Math.random() * 4)];
+        raiseAmt = Math.min(Math.round(G.pot * pct) + G.currentBet, p.stack + p.bet);
+    }
+
+    executeAction(idx, action, raiseAmt);
+}
+
+function estimateHandStrength(hole, community) {
+    if (!hole || hole.length < 2) return 0.3;
+    const r1 = RANK_VAL[hole[0].rank], r2 = RANK_VAL[hole[1].rank];
+    const suited = hole[0].suit === hole[1].suit;
+    const paired = hole[0].rank === hole[1].rank;
+
+    let base = 0.3;
+    if (paired) base = 0.55 + (r1 - 2) / 26;
+    else {
+        base = (r1 + r2 - 4) / 26;
+        if (suited) base += 0.05;
+        if (Math.abs(r1 - r2) <= 2) base += 0.05;
+    }
+    base = Math.max(0.1, Math.min(0.95, base));
+
+    if (community.length > 0) {
+        const all = [...hole, ...community];
+        const h = bestHand(all);
+        const typeBonus = [0, 0.05, 0.1, 0.2, 0.35, 0.45, 0.55, 0.7, 0.85, 0.95];
+        base = Math.max(base, typeBonus[h.type] || 0);
+    }
+    return base;
+}
+
+// ─── HAND EVALUATION ──────────────────────────────────────────────────────────
+function buildDeck() {
+    const deck = [];
+    SUITS.forEach(suit => RANKS.forEach(rank => deck.push({ suit, rank })));
+    return deck;
+}
+
+function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+function dealCard() {
+    return G.deck.pop();
+}
+
+function bestHand(cards) {
+    if (!cards || cards.length < 5) return { type: 0, score: 0, name: 'High Card' };
+    const combos = getCombinations(cards, 5);
+    let best = null;
+    for (const combo of combos) {
+        const h = evalFiveCard(combo);
+        if (!best || compareHands(h, best) > 0) best = h;
+    }
+    return best || { type: 0, score: 0, name: 'High Card' };
+}
+
+function getCombinations(arr, k) {
+    if (k === 0) return [[]];
+    if (arr.length < k) return [];
+    const [first, ...rest] = arr;
+    const withFirst = getCombinations(rest, k - 1).map(c => [first, ...c]);
+    const withoutFirst = getCombinations(rest, k);
+    return [...withFirst, ...withoutFirst];
+}
+
+function evalFiveCard(cards) {
+    const vals = cards.map(c => RANK_VAL[c.rank]).sort((a, b) => b - a);
+    const suits = cards.map(c => c.suit);
+    const flush = suits.every(s => s === suits[0]);
+    const straight = isStraight(vals);
+    const counts = {};
+    vals.forEach(v => { counts[v] = (counts[v] || 0) + 1; });
+    const groups = Object.entries(counts).sort((a, b) => b[1] - a[1] || b[0] - a[0]);
+    const topGroup = parseInt(groups[0][1]);
+
+    let type = 0, name = 'High Card';
+
+    if (flush && straight && vals[0] === 14 && vals[4] === 10) { type = 9; name = 'Royal Flush'; }
+    else if (flush && straight) { type = 8; name = 'Straight Flush'; }
+    else if (topGroup === 4) { type = 7; name = 'Four of a Kind'; }
+    else if (topGroup === 3 && parseInt(groups[1][1]) === 2) { type = 6; name = 'Full House'; }
+    else if (flush) { type = 5; name = 'Flush'; }
+    else if (straight) { type = 4; name = 'Straight'; }
+    else if (topGroup === 3) { type = 3; name = 'Three of a Kind'; }
+    else if (topGroup === 2 && parseInt(groups[1][1]) === 2) { type = 2; name = 'Two Pair'; }
+    else if (topGroup === 2) { type = 1; name = 'One Pair'; }
+    else { type = 0; name = 'High Card'; }
+
+    let score = type * 1e10;
+    vals.forEach((v2, i) => { score += v2 * Math.pow(100, 4 - i); });
+
+    return { type, score, name, cards };
+}
+
+function isStraight(sortedVals) {
+    if (sortedVals[0] === 14) {
+        if (JSON.stringify(sortedVals.slice(1)) === JSON.stringify([5, 4, 3, 2])) return true;
+    }
+    for (let i = 0; i < 4; i++) {
+        if (sortedVals[i] - sortedVals[i + 1] !== 1) return false;
+    }
+    return true;
+}
+
+function compareHands(a, b) {
+    if (a.score > b.score) return 1;
+    if (a.score < b.score) return -1;
+    return 0;
+}
+
+// ─── RENDERING ────────────────────────────────────────────────────────────────
+function renderGame() {
+    renderCommunityCards();
+    renderPlayersRing();
+    renderPot();
+    renderMyCards();
+}
+
+function renderCommunityCards() {
+    const cc = document.getElementById('communityCards');
+    const existingCards = cc.querySelectorAll('.playing-card');
+    if (G.community.length > existingCards.length) {
+        cc.innerHTML = '';
+        G.community.forEach(card => cc.appendChild(makeCardEl(card, true)));
+        for (let i = G.community.length; i < 5; i++) {
+            const ph = document.createElement('div');
+            ph.className = 'playing-card face-down';
+            cc.appendChild(ph);
+        }
+    } else if (existingCards.length === 0) {
+        for (let i = 0; i < 5; i++) {
+            const ph = document.createElement('div');
+            ph.className = 'playing-card face-down';
+            cc.appendChild(ph);
+        }
+    }
+    document.getElementById('stageLabel').innerText = G.stage.toUpperCase();
+}
+
+function renderPot() {
+    document.getElementById('potAmount').innerText = `$${G.pot}`;
+    const totalBets = G.players.reduce((sum, p) => sum + (p.bet || 0), 0);
+    const betsEl = document.getElementById('totalBetsDisplay');
+    if (betsEl) {
+        betsEl.innerText = totalBets > 0 ? `+ $${totalBets} in bets` : '';
+    }
+}
+
+function renderPlayersRing() {
+    const ring = document.getElementById('playersRing');
+    const W = ring.clientWidth || 360;
+    const H = ring.clientHeight || 200;
+    const n = G.players.length;
+    const rx = W * 0.42, ry = H * 0.42;
+    const cx = W / 2, cy = H / 2;
+
+    const needsFullRebuild = ring.children.length !== n;
+    if (needsFullRebuild) ring.innerHTML = '';
+
+    G.players.forEach((p, i) => {
+        const angle = ((2 * Math.PI * i) / n) - Math.PI / 2;
+        const x = cx + rx * Math.cos(angle);
+        const y = cy + ry * Math.sin(angle);
+
+        let slot = needsFullRebuild ? null : ring.querySelector(`.player-slot[data-pid="${p.id}"]`);
+        const isNewSlot = !slot;
+
+        if (isNewSlot) {
+            slot = document.createElement('div');
+            slot.className = 'player-slot';
+            slot.dataset.pid = p.id;
+            slot.style.left = x + 'px';
+            slot.style.top = y + 'px';
+        }
+
+        const isActive = i === G.activeIdx && !p.folded;
+
+        if (isNewSlot) {
+            const cardsDiv = document.createElement('div');
+            cardsDiv.className = 'player-cards'; cardsDiv.dataset.role = 'cards';
+            const avatar = document.createElement('div');
+            avatar.dataset.role = 'avatar';
+            avatar.innerText = p.name.charAt(0).toUpperCase() + (p.isBot ? '🤖' : '');
+            const nameEl = document.createElement('div');
+            nameEl.className = 'player-name'; nameEl.dataset.role = 'name';
+            nameEl.innerText = p.name + (p.id === myUID ? ' (You)' : '');
+            const stackEl = document.createElement('div');
+            stackEl.className = 'player-stack'; stackEl.dataset.role = 'stack';
+            const betEl = document.createElement('div');
+            betEl.className = 'player-bet'; betEl.dataset.role = 'bet';
+            slot.appendChild(cardsDiv);
+            slot.appendChild(avatar);
+            slot.appendChild(nameEl);
+            slot.appendChild(stackEl);
+            slot.appendChild(betEl);
+            ring.appendChild(slot);
+        }
+
+        const avatar = slot.querySelector('[data-role="avatar"]');
+        const stackEl = slot.querySelector('[data-role="stack"]');
+        const betEl = slot.querySelector('[data-role="bet"]');
+        const cardsDiv = slot.querySelector('[data-role="cards"]');
+
+        avatar.className = 'player-avatar' +
+            (isActive ? ' active-turn' : '') +
+            (p.folded ? ' folded' : '') +
+            (p.allIn ? ' all-in' : '');
+
+        let dealerBadge = avatar.querySelector('.badge-dealer');
+        if (i === G.dealerIdx && !dealerBadge) {
+            dealerBadge = document.createElement('div');
+            dealerBadge.className = 'player-status-badge badge-dealer';
+            dealerBadge.innerText = 'D';
+            avatar.appendChild(dealerBadge);
+        } else if (i !== G.dealerIdx && dealerBadge) {
+            dealerBadge.remove();
+        }
+
+        stackEl.innerText = p.allIn ? 'ALL-IN' : `$${p.stack}`;
+        betEl.innerText = p.bet > 0 ? `Bet: $${p.bet}` : '';
+
+        const showCards = p.showHand || p.id === myUID || (!isOnline && !p.isBot);
+        const wantReveal = showCards && p.holeCards && p.holeCards.length === 2;
+        const currentReveal = cardsDiv.dataset.revealed === '1';
+        if (wantReveal !== currentReveal || (wantReveal && cardsDiv.children.length !== 2)) {
+            cardsDiv.innerHTML = '';
+            cardsDiv.dataset.revealed = wantReveal ? '1' : '0';
+            if (p.holeCards && p.holeCards.length === 2) {
+                p.holeCards.forEach(card => {
+                    const mini = document.createElement('div');
+                    mini.className = 'mini-card' + (wantReveal && card ? ' revealed ' + getCardColor(card) : '');
+                    mini.innerText = wantReveal && card ? cardLabel(card) : '';
+                    cardsDiv.appendChild(mini);
+                });
+            }
+        }
+    });
+}
+
+function renderMyCards() {
+    const area = document.getElementById('myCardsArea');
+    if (!G) return;
+    const me = G.players.find(p => p.id === myUID);
+    const cardKey = me && me.holeCards ? me.holeCards.map(c => c ? c.rank + c.suit : '?').join(',') : '';
+    if (area.dataset.cardKey === cardKey && area.children.length > 0) return;
+    area.innerHTML = '';
+    area.dataset.cardKey = cardKey;
+    if (!me || !me.holeCards || me.folded || me.holeCards.length < 2) return;
+    me.holeCards.forEach(card => area.appendChild(makeCardEl(card, true)));
+}
+
+function makeCardEl(card, dealt = false) {
+    if (!card) {
+        const el = document.createElement('div');
+        el.className = 'playing-card face-down';
+        return el;
+    }
+    const el = document.createElement('div');
+    const color = getCardColor(card);
+    el.className = `playing-card ${color}` + (dealt ? ' dealt' : '');
+    el.innerHTML = `
+        <div class="card-corner card-corner-tl">
+            <div class="card-rank">${card.rank}</div>
+            <div class="card-suit">${card.suit}</div>
+        </div>
+        <div class="card-center">${card.suit}</div>
+        <div class="card-corner card-corner-br">
+            <div class="card-rank">${card.rank}</div>
+            <div class="card-suit">${card.suit}</div>
+        </div>`;
+    return el;
+}
+
+function getCardColor(card) {
+    return (card.suit === '♥' || card.suit === '♦') ? 'red' : 'black';
+}
+
+function cardLabel(card) {
+    return card.rank + card.suit;
+}
+
+// ─── SHOWDOWN MODAL ───────────────────────────────────────────────────────────
+function showShowdownModal(ranked, payout, winners) {
+    const modal = document.getElementById('showdownModal');
+    const content = document.getElementById('showdownContent');
+    content.innerHTML = '';
+
+    ranked.forEach(({ p, result }) => {
+        const won = payout[p.id] || 0;
+        const isWinner = winners.some(w => w.id === p.id);
+        const row = document.createElement('div');
+        row.className = 'showdown-player' + (isWinner ? ' winner' : '');
+
+        const cardsDiv = document.createElement('div');
+        cardsDiv.className = 'showdown-cards';
+        if (p.holeCards) p.holeCards.forEach(c => cardsDiv.appendChild(makeCardEl(c)));
+
+        const info = document.createElement('div');
+        info.className = 'showdown-info';
+        info.innerHTML = `
+            <div class="showdown-name">${p.name}${p.id === myUID ? ' (You)' : ''}</div>
+            <div class="showdown-hand">${result ? result.name : 'Folded'}</div>
+            ${won > 0 ? `<div class="showdown-won">+$${won}</div>` : ''}`;
+
+        row.appendChild(cardsDiv);
+        row.appendChild(info);
+        content.appendChild(row);
+    });
+
+    document.getElementById('showdownTitle').innerText =
+        winners.length > 1 ? 'Split Pot!' :
+        winners[0].id === myUID ? '🏆 You Win!' : `${winners[0].name} Wins!`;
+
+    const chipArea = document.getElementById('chipAnimation');
+    chipArea.innerHTML = '';
+    const potAmt = Object.values(payout).reduce((a, b) => a + b, 0);
+    const chips = getChipBreakdown(potAmt);
+    chips.forEach((chip, i) => {
+        const el = document.createElement('div');
+        el.className = `chip chip-${chip.denom}`;
+        el.style.animationDelay = (i * 50) + 'ms';
+        el.innerText = chip.denom >= 100 ? chip.denom : '';
+        chipArea.appendChild(el);
+    });
+
+    document.getElementById('showHandBtn').style.display = 'none';
+    modal.style.display = 'flex';
+}
+
+window.toggleShowHands = () => {};
+
+function getChipBreakdown(amount) {
+    const denoms = [500, 100, 25, 5, 1];
+    const chips = [];
+    let rem = Math.min(amount, 1000);
+    denoms.forEach(d => {
+        while (rem >= d && chips.length < 20) {
+            chips.push({ denom: d });
+            rem -= d;
+        }
+    });
+    return chips;
+}
+
+// ─── CHIP ANIMATION ───────────────────────────────────────────────────────────
+function animateChips(winners) {
+    const overlay = document.getElementById('chipsOverlay');
+    overlay.innerHTML = '';
+    overlay.style.display = 'block';
+
+    const potEl = document.getElementById('potAmount');
+    if (!potEl) return;
+    const potRect = potEl.getBoundingClientRect();
+
+    const ring = document.getElementById('playersRing');
+    const ringRect = ring.getBoundingClientRect();
+    const W = ring.clientWidth, H = ring.clientHeight;
+    const n = G.players.length;
+    const rx = W * 0.42, ry = H * 0.42;
+    const cx = W / 2, cy = H / 2;
+
+    winners.forEach(winner => {
+        const i = winner.id;
+        const angle = ((2 * Math.PI * i) / n) - Math.PI / 2;
+        const wx = ringRect.left + cx + rx * Math.cos(angle);
+        const wy = ringRect.top + cy + ry * Math.sin(angle);
+
+        for (let j = 0; j < 8; j++) {
+            const chip = document.createElement('div');
+            chip.className = `flying-chip chip-${[1, 5, 25, 100, 500][j % 5]}`;
+            chip.style.cssText = `
+                left: ${potRect.left + potRect.width / 2}px;
+                top: ${potRect.top + potRect.height / 2}px;
+                --sx: 0px; --sy: 0px;
+                --ex: ${wx - (potRect.left + potRect.width / 2)}px;
+                --ey: ${wy - (potRect.top + potRect.height / 2)}px;
+                --duration: ${0.5 + j * 0.08}s;
+                animation-delay: ${j * 60}ms;
+            `;
+            overlay.appendChild(chip);
+        }
+    });
+
+    setTimeout(() => { overlay.style.display = 'none'; overlay.innerHTML = ''; }, 2000);
+}
+
+// ─── SESSION MODAL ────────────────────────────────────────────────────────────
+function showSessionModal() {
+    const content = document.getElementById('sessionContent');
+    content.innerHTML = '';
+    const sorted = [...G.players].sort((a, b) => b.stack - a.stack);
+    sorted.forEach(p => {
+        const row = document.createElement('div');
+        row.className = 'session-row' + (p.id === myUID ? ' winner' : '');
+        row.innerHTML = `<span>${p.name}${p.id === myUID ? ' (You)' : ''}</span><span>$${p.stack}</span>`;
+        content.appendChild(row);
+    });
+    document.getElementById('sessionModal').style.display = 'flex';
+}
+
+// ─── ACTION INDICATOR ────────────────────────────────────────────────────────
+function showActionIndicator(idx, type, text) {
+    const slots = document.querySelectorAll('.player-slot');
+    if (!slots[idx]) return;
+    const old = slots[idx].querySelector('.action-indicator');
+    if (old) old.remove();
+    const el = document.createElement('div');
+    el.className = `action-indicator ${type}`;
+    el.innerText = text;
+    const avatarEl = slots[idx].querySelector('.player-avatar');
+    if (avatarEl) avatarEl.appendChild(el);
+    setTimeout(() => el.remove(), 1800);
+}
+
+// ─── TURN TIMER ──────────────────────────────────────────────────────────────
+function startTurnTimer(seconds, onExpire) {
+    clearTurnTimer();
+    let remaining = seconds;
+    turnTimer = setInterval(() => {
+        remaining--;
+        if (remaining <= 0) { clearTurnTimer(); onExpire(); }
+    }, 1000);
+}
+
+function clearTurnTimer() {
+    if (turnTimer) { clearInterval(turnTimer); turnTimer = null; }
+}
+
+function clearBotTimeouts() {
+    botTimeouts.forEach(t => clearTimeout(t));
+    botTimeouts = [];
+}
+
+// ─── MOVE LOGGING ─────────────────────────────────────────────────────────────
+function logMove(playerName, action) {
+    sessionMoves.push({ player: playerName, action, ts: Date.now(), round: G.round });
+}
+
+async function logSessionToFirestore() {
+    if (!isOnline || !lobbyId) return;
+    try {
+        await addDoc(collection(fdb, 'poker_sessions'), {
+            lobbyId,
+            startedAt: sessionStartTime,
+            endedAt: Date.now(),
+            players: G.players.map(p => ({ name: p.name, finalStack: p.stack })),
+            moves: sessionMoves.slice(-200),
+            rounds: G.round,
+            timestamp: serverTimestamp()
+        });
+    } catch (e) { console.error('Failed to log session:', e); }
+}
+
+// ─── ONLINE STATE SYNC ────────────────────────────────────────────────────────
+async function pushOnlineState() {
+    if (!lobbyId || !isOnline) return;
+    const stateToSync = {
+        players: G.players.map(p => ({
+            id: p.id, name: p.name, stack: p.stack, bet: p.bet,
+            folded: p.folded, allIn: p.allIn, showHand: p.showHand,
+            // Send hole cards only if it's a showdown (everyone revealed)
+            // Each client already knows their own cards from local G
+            holeCards: p.showHand ? p.holeCards : p.holeCards.map(() => null)
+        })),
+        community: G.community,
+        pot: G.pot,
+        stage: G.stage,
+        activeIdx: G.activeIdx,
+        currentBet: G.currentBet,
+        dealerIdx: G.dealerIdx,
+        round: G.round,
+        sessionOver: G.sessionOver || false,
+    };
+    const stateStr = JSON.stringify(stateToSync);
+    lastPushedStateStr = stateStr;
+    try {
+        await updateDoc(doc(fdb, 'poker_lobbies', lobbyId), { state: stateToSync, pendingAction: null });
+    } catch (e) { console.error('pushOnlineState failed:', e); }
+}
+
+function applyRemoteState(remote) {
+    if (!G) return;
+
+    // Skip echo-backs (our own pushed state)
+    const stateStr = JSON.stringify(remote);
+    if (stateStr === lastPushedStateStr) return;
+
+    // Track round change to reset render caches
+    const roundChanged = remote.round && remote.round !== G.round;
+    if (roundChanged) {
+        const area = document.getElementById('myCardsArea');
+        if (area) { area.innerHTML = ''; area.dataset.cardKey = ''; }
+        const cc = document.getElementById('communityCards');
+        if (cc) cc.innerHTML = '';
+        const ring = document.getElementById('playersRing');
+        if (ring) ring.innerHTML = '';
+        lastPushedStateStr = '';
+    }
+
+    const prevActiveIdx = G.activeIdx;
+
+    G.community = remote.community || G.community;
+    G.pot = remote.pot ?? G.pot;
+    G.stage = remote.stage || G.stage;
+    G.activeIdx = remote.activeIdx ?? G.activeIdx;
+    G.currentBet = remote.currentBet ?? G.currentBet;
+    G.dealerIdx = remote.dealerIdx ?? G.dealerIdx;
+    G.round = remote.round ?? G.round;
+
+    // Update player public state; preserve own hole cards from local G
+    remote.players.forEach(rp => {
+        const p = G.players.find(lp => lp.id === rp.id);
+        if (!p) return;
+        p.stack = rp.stack;
+        p.bet = rp.bet;
+        p.folded = rp.folded;
+        p.allIn = rp.allIn;
+        p.showHand = rp.showHand;
+        // Reveal cards at showdown
+        if (rp.showHand && rp.holeCards && rp.holeCards[0]) {
+            p.holeCards = rp.holeCards;
+        }
+        // For myself: never overwrite local hole cards with nulls from host
+        // (host sends nulls for non-showdown; client already has their own cards)
+    });
+
+    renderGame();
+
+    // Show/hide action bar based on whether it's my turn
+    const me = G.players.find(p => p.id === myUID);
+    if (me && !me.folded && !me.allIn && G.activeIdx === myUID && G.stage !== 'showdown') {
+        showActionBar(G.activeIdx);
+        startTurnTimer(TURN_TIMEOUT_S, () => playerAction('fold'));
+    } else {
+        hideActionBar();
+    }
+
+    if (remote.sessionOver) { endSession(); }
+
+    // Show showdown modal for non-host when stage becomes showdown
+    if (remote.stage === 'showdown' && prevActiveIdx !== -1) {
+        const contenders = G.players.filter(p => !p.folded);
+        if (contenders.length > 0 && contenders[0].holeCards && contenders[0].holeCards[0]) {
+            const ranked = contenders.map(p => ({
+                p, result: bestHand([...p.holeCards, ...G.community])
+            })).sort((a, b) => compareHands(b.result, a.result));
+            const topScore = ranked[0].result.score;
+            const winners = ranked.filter(r => r.result.score === topScore).map(r => r.p);
+            const payout = {};
+            G.players.forEach(p => { payout[p.id] = 0; });
+            // Payout was already applied by host; just show modal
+            const alreadyShowing = document.getElementById('showdownModal').style.display === 'flex';
+            if (!alreadyShowing) {
+                showShowdownModal(ranked, payout, winners);
+                animateChips(winners);
+            }
+        }
+    }
+}
+
+// Host listens for pending actions from non-host players
+function listenForPendingActions() {
+    if (!amHost || !lobbyId) return;
+    // We already have the onSnapshot from subscribeLobby.
+    // Handle pendingAction in the snapshot handler.
+}
+
+// Called by host's snapshot when a pendingAction arrives
+function handlePendingAction(data) {
+    if (!amHost || !G || !data.pendingAction) return;
+    const pa = data.pendingAction;
+    // Only process if it's for the current active player
+    if (pa.uid !== G.players[G.activeIdx]?.id) return;
+    // Prevent processing the same action twice
+    if (pa.ts === lastPendingActionTs) return;
+    lastPendingActionTs = pa.ts;
+
+    clearTurnTimer();
+    hideActionBar();
+    executeAction(G.activeIdx, pa.type, pa.raiseToAmount);
+}
+let lastPendingActionTs = 0;
+
+// Patch subscribeLobby to also handle pending actions for host
+const _origSubscribeLobby = subscribeLobby;
+// Override by re-subscribing with pendingAction handling inline
+function subscribeLobbyWithActions(code) {
+    if (unsubLobby) unsubLobby();
+    let gameInitialized = false;
+
+    unsubLobby = onSnapshot(doc(fdb, 'poker_lobbies', code), (snap) => {
+        if (!snap.exists()) {
+            alert('Lobby closed.'); window.location.reload(); return;
+        }
+        const data = snap.data();
+
+        if (document.getElementById('startScreen').style.display !== 'none') {
+            updateOnlinePlayerList(data.players || []);
+        }
+
+        if (data.started && !gameInitialized) {
+            gameInitialized = true;
+            const stack = 1000;
+            const players = (data.players || []).map((p, i) => ({
+                id: i, name: p.name, stack,
+                isBot: p.isBot || false, isHuman: !p.isBot
+            }));
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'flex';
+            document.getElementById('menuLeave').style.display = 'block';
+            document.getElementById('onlineIndicator').style.display = 'flex';
+
+            if (amHost) {
+                initSession(players);
+            } else {
+                initSessionPassive(players);
+            }
+            return;
+        }
+
+        if (document.getElementById('gameScreen').style.display !== 'none') {
+            if (amHost) {
+                // Host processes pending actions from non-host players
+                handlePendingAction(data);
+            } else {
+                // Non-host applies remote state
+                if (data.state) {
+                    applyRemoteState(data.state);
+                }
+            }
+        }
+    });
+}
+
+// Replace subscribeLobby usage with the enhanced version
+window.createOnlineLobby = async () => {
+    const name = document.getElementById('onlineName').value.trim() || 'Host';
+    myName = name;
+    amHost = true;
+    myUID = 0;
+    isOnline = true;
+    lobbyId = genCode();
+
+    setOnlineStatus('Creating lobby...');
+    try {
+        await setDoc(doc(fdb, 'poker_lobbies', lobbyId), {
+            host: name,
+            players: [{ id: 0, name, isBot: false }],
+            started: false,
+            state: null,
+            pendingAction: null,
+            createdAt: serverTimestamp()
+        });
+        document.getElementById('onlineLobbyCode').style.display = 'flex';
+        document.getElementById('onlineLobbyCodeVal').innerText = lobbyId;
+        document.getElementById('onlineBotRow').style.display = 'flex';
+        document.getElementById('onlineStartGameBtn').style.display = 'block';
+        document.getElementById('onlinePlayerList').style.display = 'flex';
+        setOnlineStatus('');
+        subscribeLobbyWithActions(lobbyId);
+    } catch (e) { setOnlineStatus('Error: ' + e.message); }
+};
+
+window.joinOnlineLobby = async () => {
+    const name = document.getElementById('onlineName').value.trim() || 'Player';
+    const code = document.getElementById('joinCode').value.trim().toUpperCase();
+    if (!code) { setOnlineStatus('Enter a lobby code.'); return; }
+    setOnlineStatus('Joining...');
+    try {
+        const ref = doc(fdb, 'poker_lobbies', code);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) { setOnlineStatus('Lobby not found.'); return; }
+        const data = snap.data();
+        if (data.started) { setOnlineStatus('Game already started.'); return; }
+        if (data.players.length >= 10) { setOnlineStatus('Lobby is full (10 players max).'); return; }
+
+        myUID = data.players.length;
+        myName = name;
+        amHost = false;
+        isOnline = true;
+        lobbyId = code;
+
+        const newPlayers = [...data.players, { id: myUID, name, isBot: false }];
+        await updateDoc(ref, { players: newPlayers });
+        setOnlineStatus('');
+        document.getElementById('onlinePlayerList').style.display = 'flex';
+        document.getElementById('onlineWaitMsg').style.display = 'flex';
+        subscribeLobbyWithActions(code);
+    } catch (e) { setOnlineStatus('Error: ' + e.message); }
+};
+
+// ─── WINDOW EVENTS ───────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+    if (G) renderPlayersRing();
+});
+
+function genCode() {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+}

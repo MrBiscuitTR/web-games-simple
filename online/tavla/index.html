@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tavla Online</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body>
+    <div id="landscapeWarning" class="landscape-warning">
+        <div class="warning-content">
+            <h2>Please Rotate Your Device</h2>
+            <p>This game is designed to be played in portrait mode on small screens.</p>
+        </div>
+    </div>
+
+    <!-- Lobby Screen -->
+    <div id="lobbyScreen" class="lobby-screen">
+        <a href="/" class="global-hub-btn lobby-home" aria-label="Home">🏠</a>
+        <div class="lobby-card">
+            <div class="lobby-logo">🎲</div>
+            <h1>Tavla Online</h1>
+            <p class="lobby-subtitle">Turkish Backgammon — Real-time multiplayer</p>
+
+            <div class="lobby-section">
+                <label>Your Name</label>
+                <input type="text" id="playerNameInput" placeholder="Enter your name..." maxlength="20" autocomplete="off" />
+            </div>
+
+            <div class="lobby-section">
+                <label>Game Mode</label>
+                <div class="mode-selectors">
+                    <button id="btnErkek" class="active" onclick="setMode('erkek')">Erkek Tavlası</button>
+                    <button id="btnKiz" onclick="setMode('kiz')">Kız Tavlası</button>
+                </div>
+            </div>
+
+            <div class="lobby-divider">
+                <button class="lobby-btn primary" id="btnCreate" onclick="createLobby()">Create Lobby</button>
+                <div class="lobby-or">or</div>
+                <div class="join-row">
+                    <input type="text" id="joinCodeInput" placeholder="Lobby code..." maxlength="6" autocomplete="off" />
+                    <button class="lobby-btn secondary" id="btnJoin" onclick="joinLobby()">Join</button>
+                </div>
+            </div>
+
+            <div id="lobbyStatus" class="lobby-status"></div>
+            <div id="lobbyCode" class="lobby-code-display" style="display:none">
+                <span>Your code:</span>
+                <strong id="lobbyCodeVal"></strong>
+                <button class="copy-btn" onclick="copyCode()">Copy</button>
+            </div>
+            <div id="waitingMsg" class="waiting-msg" style="display:none">
+                <div class="spinner"></div>
+                Waiting for opponent...
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="gameScreen" class="app-container" style="display:none">
+        <div class="panel left-panel">
+            <div class="mobile-flex-row">
+                <a href="/" class="global-hub-btn" aria-label="Home">🏠</a>
+                <button id="btnNewGame" class="action-btn" onclick="requestNewGame()">New Game</button>
+            </div>
+            <div id="connectionBadge" class="conn-badge conn-ok">● Connected</div>
+            <details class="mobile-details" id="settingsDetails">
+                <summary>Settings & Rules</summary>
+                <div class="details-content">
+                    <h2>Settings</h2>
+                    <div id="modeDisplay" class="mode-display"></div>
+                    <button id="btnLeave" class="danger-btn" onclick="leaveGame()">Leave Game</button>
+                </div>
+            </details>
+            <div id="rulesIcon" class="rules-btn">?</div>
+        </div>
+
+        <div class="board-container">
+            <div class="status-bar">
+                <div id="turnIndicator">Waiting...</div>
+                <div id="diceArea">
+                    <button id="btnRoll" class="action-btn highlight" disabled onclick="rollDice()">Roll Dice</button>
+                    <div id="diceDisplay" class="dice-display"></div>
+                </div>
+            </div>
+
+            <div class="tavla-board" id="board">
+                <svg class="direction-arrows" viewBox="0 0 1000 600" preserveAspectRatio="none">
+                    <defs>
+                        <marker id="arrowWhite" viewBox="0 0 15 15" refX="10" refY="7.5" markerWidth="6" markerHeight="6" orient="auto">
+                            <path d="M 0 0 L 15 7.5 L 0 15 z" fill="rgba(249,249,249,0.45)" />
+                        </marker>
+                        <marker id="arrowBlack" viewBox="0 0 15 15" refX="10" refY="7.5" markerWidth="6" markerHeight="6" orient="auto">
+                            <path d="M 0 0 L 15 7.5 L 0 15 z" fill="rgba(34,34,34,0.45)" />
+                        </marker>
+                    </defs>
+                    <path d="M 850 160 L 150 160 Q 100 160 100 300 Q 100 440 150 440 L 850 440"
+                          fill="none" stroke="rgba(249,249,249,0.35)" stroke-width="12" stroke-dasharray="20,15" marker-end="url(#arrowWhite)"/>
+                    <path d="M 850 480 L 80 480 Q 30 480 30 300 Q 30 120 80 120 L 850 120"
+                          fill="none" stroke="rgba(34,34,34,0.35)" stroke-width="12" stroke-dasharray="20,15" marker-end="url(#arrowBlack)"/>
+                </svg>
+
+                <div class="board-half left-half">
+                    <div class="row top-row" id="quad-tl"></div>
+                    <div class="row bottom-row" id="quad-bl"></div>
+                </div>
+                <div class="board-bar" id="bar">
+                    <div class="bar-top" id="bar-p1"></div>
+                    <div class="bar-bottom" id="bar-p2"></div>
+                </div>
+                <div class="board-half right-half">
+                    <div class="row top-row" id="quad-tr"></div>
+                    <div class="row bottom-row" id="quad-br"></div>
+                </div>
+                <div class="bear-off-zone" id="bear-off">
+                    <div class="bear-off-top" id="off-p2"></div>
+                    <div class="bear-off-bottom" id="off-p1"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel right-panel">
+            <details class="mobile-details" id="historyDetails">
+                <summary>Score & Move History</summary>
+                <div class="details-content history-flex">
+                    <h2>Move History</h2>
+                    <div id="historyLog" class="history-log"></div>
+                    <div id="scoreBoard">
+                        <p>Scores</p>
+                        <p id="scoreLabel1">You: <span id="scoreP1">0</span></p>
+                        <p id="scoreLabel2">Opponent: <span id="scoreP2">0</span></p>
+                    </div>
+                </div>
+            </details>
+        </div>
+    </div>
+
+    <!-- Win Modal -->
+    <div id="winModal" class="modal">
+        <div class="modal-content">
+            <h2 id="winModalTitle">Player Wins!</h2>
+            <p id="winModalMsg">Congratulations!</p>
+            <button class="btn-next" id="btnNextGame" onclick="requestNewGame()">Next Game</button>
+        </div>
+    </div>
+
+    <!-- New Game Request Modal -->
+    <div id="newGameModal" class="modal">
+        <div class="modal-content" style="text-align:center">
+            <h2>New Game?</h2>
+            <p id="newGameMsg">Opponent wants to play again!</p>
+            <div style="display:flex;gap:10px;margin-top:1rem">
+                <button class="action-btn" style="flex:1" onclick="respondNewGame(true)">Accept</button>
+                <button class="danger-btn" style="flex:1" onclick="respondNewGame(false)">Decline</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rules Modal -->
+    <div id="rulesModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="document.getElementById('rulesModal').style.display='none'">&times;</span>
+            <h2>Tavla Rules</h2>
+            <div class="rules-text">
+                <h3>Erkek Tavlası</h3>
+                <ul>
+                    <li><strong>Goal:</strong> Bear off all 15 checkers before your opponent.</li>
+                    <li><strong>Dice:</strong> Roll two dice. Doubles give 4 moves.</li>
+                    <li><strong>Hitting:</strong> Land on an opponent's lone checker (blot) to send it to the bar.</li>
+                    <li><strong>Bar:</strong> Must re-enter from the bar before making other moves.</li>
+                    <li><strong>Blocking:</strong> 2+ opponent pieces on a point — can't land there.</li>
+                    <li><strong>Mars:</strong> Win with opponent bearing none = 2pts; opponent still on your home board/bar = 3pts (Katmerli Mars). Normal win = 1pt.</li>
+                </ul>
+                <h3>Kız Tavlası</h3>
+                <ul>
+                    <li>No hitting, no blocking. Race to bear off all pieces first.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase -->
+    <script type="module" src="script.js"></script>
+    <script src="/sw-register.js"></script>
+</body>
+</html>

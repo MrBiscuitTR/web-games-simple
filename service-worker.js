@@ -1,4 +1,4 @@
-const CACHE_NAME = 'web-games-cache-v4';
+const CACHE_NAME = 'web-games-cache-v1.1.1';
 const ASSETS = [
   '/',
   '/index.html',
@@ -12,7 +12,10 @@ const ASSETS = [
   '/dama/index.html', '/dama/script.js', '/dama/style.css',
   '/uno/index.html', '/uno/script.js', '/uno/style.css',
   '/sudoku/index.html', '/sudoku/script.js', '/sudoku/style.css',
-  '/minefield/index.html', '/minefield/script.js', '/minefield/style.css'
+  '/minefield/index.html', '/minefield/script.js', '/minefield/style.css',
+  // Online games — cache HTML/CSS for layout; JS loaded from network (Firebase ESM)
+  '/online/tavla/index.html', '/online/tavla/style.css',
+  '/online/poker/index.html', '/online/poker/style.css'
 ];
 
 self.addEventListener('install', (event) => {

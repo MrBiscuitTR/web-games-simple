@@ -10,14 +10,14 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
-        :root { --bg-color: #1a1a2e; --card-bg: #16213e; --text-color: #e94560; --text-light: #fff; }
+        :root { --bg-color: #1a1a2e; --card-bg: #16213e; --text-color: #e94560; --text-light: #fff; --online-accent: #2ecc71; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-light); min-height: 100dvh; display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem; overflow-x: hidden;}
         .top-bar { width: 100%; max-width: 1000px; display: flex; justify-content: flex-end; margin-bottom: 1rem; }
         select { padding: 5px 10px; border-radius: 5px; background: var(--card-bg); color: #fff; border: 1px solid var(--text-color); font-size: 1rem; outline: none; }
         header { text-align: center; margin-bottom: 2rem; }
         header h1 { font-size: 2.5rem; color: var(--text-color); margin-bottom: 0.5rem; }
-        
+
         /* Data Manager Styles */
         .data-manager { width: 100%; max-width: 1000px; background: var(--card-bg); border-radius: 8px; margin-bottom: 2rem; padding: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
         .data-manager summary { font-size: 1.2rem; font-weight: bold; cursor: pointer; padding: 10px; outline: none; text-align: center; color: var(--text-color); list-style: none;}
@@ -26,13 +26,55 @@
         .db-btn { flex: 1 1 180px; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; background: #34495e; color: #fff; transition: 0.2s;}
         .db-btn:active { transform: scale(0.95); }
         .db-btn.danger-all { flex: 1 1 100%; background: #e53935; font-size: 1.2rem; padding: 15px; margin-top: 10px;}
-        
+
         .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; width: 100%; max-width: 1000px; }
         .game-card { background-color: var(--card-bg); border-radius: 12px; padding: 2rem; text-align: center; text-decoration: none; color: inherit; transition: transform 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
         .game-card:active { transform: scale(0.95); }
         .game-card h2 { font-size: 1.8rem; margin-bottom: 1rem; color: var(--text-color); }
         .game-card p { font-size: 1rem; opacity: 0.8; }
         .game-icon { font-size: 4rem; margin-bottom: 1rem; }
+
+        /* Online Games Section */
+        .online-section { width: 100%; max-width: 1000px; margin-top: 2.5rem; }
+        .online-toggle-bar {
+            display: flex; align-items: center; gap: 14px;
+            background: var(--card-bg); border-radius: 10px;
+            padding: 14px 20px; cursor: pointer;
+            border: 1px solid rgba(46,204,113,0.25);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: border-color 0.2s;
+            user-select: none;
+        }
+        .online-toggle-bar:hover { border-color: rgba(46,204,113,0.5); }
+        .online-toggle-label { flex: 1; font-size: 1.2rem; font-weight: bold; color: var(--online-accent); }
+        .online-toggle-sub { font-size: 0.85rem; opacity: 0.6; }
+        .toggle-switch {
+            width: 52px; height: 28px; border-radius: 14px;
+            background: #333; position: relative; flex-shrink: 0;
+            transition: background 0.25s;
+        }
+        .toggle-switch.on { background: var(--online-accent); }
+        .toggle-knob {
+            position: absolute; top: 3px; left: 3px;
+            width: 22px; height: 22px; border-radius: 50%;
+            background: #fff; transition: left 0.25s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+        }
+        .toggle-switch.on .toggle-knob { left: 27px; }
+        .online-grid {
+            display: none; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem; margin-top: 1.5rem;
+        }
+        .online-grid.visible { display: grid; }
+        .game-card.online-card { border: 1px solid rgba(46,204,113,0.2); }
+        .game-card.online-card:hover { border-color: rgba(46,204,113,0.5); }
+        .online-badge-pill {
+            display: inline-block; background: rgba(46,204,113,0.15);
+            color: var(--online-accent); border: 1px solid rgba(46,204,113,0.3);
+            font-size: 0.7rem; font-weight: bold; padding: 3px 8px;
+            border-radius: 10px; margin-bottom: 8px; text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
     </style>
 </head>
 <body>
@@ -57,6 +99,7 @@
             <button class="db-btn" onclick="clearDB('unoGameDB')" id="btn-del-uno">Reset UNO</button>
             <button class="db-btn" onclick="clearDB('sudokuGameDB')" id="btn-del-sudoku">Reset Sudoku</button>
             <button class="db-btn" onclick="clearDB('minefieldGameDB')" id="btn-del-minefield">Reset Minefield</button>
+            <button class="db-btn" onclick="clearDB('pokerGameDB')" id="btn-del-poker">Reset Poker</button>
             <button class="db-btn danger-all" onclick="clearAllDBs()" id="btn-del-all">DELETE ALL GAME DATA</button>
         </div>
     </details>
@@ -85,35 +128,68 @@
         </a>
     </div>
 
+    <!-- Online Games Section -->
+    <div class="online-section">
+        <div class="online-toggle-bar" onclick="toggleOnlineGames()" id="onlineToggleBar">
+            <div>
+                <div class="online-toggle-label" id="onlineToggleLabel">🌐 Online Games</div>
+                <div class="online-toggle-sub" id="onlineToggleSub">Real-time multiplayer via lobby codes</div>
+            </div>
+            <div class="toggle-switch" id="onlineToggleSwitch">
+                <div class="toggle-knob"></div>
+            </div>
+        </div>
+        <div class="online-grid" id="onlineGrid">
+            <a href="online/tavla/index.html" class="game-card online-card">
+                <div class="online-badge-pill" id="onlineBadgeTavla">Online</div>
+                <div class="game-icon">🎲</div>
+                <h2>Tavla Online</h2>
+                <p id="descOnlineTavla">Turkish Backgammon. Real-time 2-player.</p>
+            </a>
+            <a href="online/poker/index.html" class="game-card online-card">
+                <div class="online-badge-pill" id="onlineBadgePoker">Online + Offline</div>
+                <div class="game-icon">🃏</div>
+                <h2>Poker</h2>
+                <p id="descOnlinePoker">Texas Hold'em. Offline bots or online lobby. Up to 10 players.</p>
+            </a>
+        </div>
+    </div>
+
     <script>
         const dict = {
-            en: { 
-                hubTitle: "Game Hub", hubSubtitle: "Modern web adaptations of classic games", 
-                descTavla: "Backgammon. Offline, 2 players. (TR Only)", titleSpy: "Spyfall", descSpy: "Pass-the-phone social deduction game.", 
-                titleChess: "Chess", descChess: "Classic 8x8 Chess. 2 players.", titleDama: "Checkers", descDama: "Turkish & International Checkers.", 
+            en: {
+                hubTitle: "Game Hub", hubSubtitle: "Modern web adaptations of classic games",
+                descTavla: "Backgammon. Offline, 2 players. (TR Only)", titleSpy: "Spyfall", descSpy: "Pass-the-phone social deduction game.",
+                titleChess: "Chess", descChess: "Classic 8x8 Chess. 2 players.", titleDama: "Checkers", descDama: "Turkish & International Checkers.",
                 titleUno: "UNO", descUno: "Pass-the-phone card game. 2-10 players.",
                 titleSudoku: "Sudoku", descSudoku: "Classic number puzzle. 3 difficulty levels.",
                 titleMinefield: "Minefield", descMinefield: "Classic Minesweeper. Customizable grid.",
                 dataManager: "⚙️ Data Management (Reset Games)", delTavla: "Reset Tavla", delSpy: "Reset Casus Kim?",
                 delChess: "Reset Chess", delDama: "Reset Checkers", delUno: "Reset UNO",
-                delSudoku: "Reset Sudoku", delMinefield: "Reset Minefield",
+                delSudoku: "Reset Sudoku", delMinefield: "Reset Minefield", delPoker: "Reset Poker",
                 delAll: "DELETE ALL GAME DATA", alertDeleted: "Data successfully deleted!",
                 errBlocked: "Deletion Blocked! Please close any open game tabs (or force close the app) and try again.",
-                errBlockedSome: "Some deletions were blocked! Please close any open game tabs and try again."
+                errBlockedSome: "Some deletions were blocked! Please close any open game tabs and try again.",
+                onlineToggleLabel: "🌐 Online Games", onlineToggleSub: "Real-time multiplayer via lobby codes",
+                descOnlineTavla: "Turkish Backgammon. Real-time 2-player.",
+                descOnlinePoker: "Texas Hold'em. Offline bots or online lobby. Up to 10 players."
             },
-            tr: { 
-                hubTitle: "Oyun Merkezi", hubSubtitle: "Klasik oyunların modern web uyarlamaları", 
-                descTavla: "Erkek ve Kız Tavlası. Çevrimdışı, 2 kişilik.", titleSpy: "Casus Kim?", descSpy: "Cihazı elden ele gezdirerek oynanan sosyal çıkarım oyunu.", 
-                titleChess: "Satranç", descChess: "Klasik 8x8 Satranç. 2 kişilik.", titleDama: "Dama", descDama: "Türk Daması ve Uluslararası Dama.", 
+            tr: {
+                hubTitle: "Oyun Merkezi", hubSubtitle: "Klasik oyunların modern web uyarlamaları",
+                descTavla: "Erkek ve Kız Tavlası. Çevrimdışı, 2 kişilik.", titleSpy: "Casus Kim?", descSpy: "Cihazı elden ele gezdirerek oynanan sosyal çıkarım oyunu.",
+                titleChess: "Satranç", descChess: "Klasik 8x8 Satranç. 2 kişilik.", titleDama: "Dama", descDama: "Türk Daması ve Uluslararası Dama.",
                 titleUno: "UNO", descUno: "Cihazı devrederek oynanan kart oyunu. 2-10 oyuncu.",
                 titleSudoku: "Sudoku", descSudoku: "Klasik sayı bulmacası. 3 zorluk seviyesi.",
                 titleMinefield: "Mayın Tarlası", descMinefield: "Klasik Mayın Tarlası. Özelleştirilebilir ızgara.",
                 dataManager: "⚙️ Veri Yönetimi (Oyunları Sıfırla)", delTavla: "Tavla Sıfırla", delSpy: "Casus Kim? Sıfırla",
                 delChess: "Satranç Sıfırla", delDama: "Dama Sıfırla", delUno: "UNO Sıfırla",
-                delSudoku: "Sudoku Sıfırla", delMinefield: "Mayın Tarlası Sıfırla",
+                delSudoku: "Sudoku Sıfırla", delMinefield: "Mayın Tarlası Sıfırla", delPoker: "Poker Sıfırla",
                 delAll: "TÜM OYUN VERİLERİNİ SİL", alertDeleted: "Veriler başarıyla silindi!",
                 errBlocked: "İşlem engellendi! Lütfen arka planda veya başka sekmede açık olan oyunu kapatıp tekrar deneyin.",
-                errBlockedSome: "Bazı silme işlemleri engellendi! Lütfen açık olan oyun sekmelerini kapatıp tekrar deneyin."
+                errBlockedSome: "Bazı silme işlemleri engellendi! Lütfen açık olan oyun sekmelerini kapatıp tekrar deneyin.",
+                onlineToggleLabel: "🌐 Çevrimiçi Oyunlar", onlineToggleSub: "Lobi kodlarıyla gerçek zamanlı çok oyunculu",
+                descOnlineTavla: "Türk Tavlası. Gerçek zamanlı 2 kişilik.",
+                descOnlinePoker: "Texas Hold'em. Çevrimdışı botlar veya çevrimiçi lobi. 10 oyuncuya kadar."
             }
         };
         const langPicker = document.getElementById('langPicker');
@@ -130,9 +206,31 @@
             dataManager: 'ui-data-manager',
             delTavla: 'btn-del-tavla', delSpy: 'btn-del-spy',
             delChess: 'btn-del-chess', delDama: 'btn-del-dama', delUno: 'btn-del-uno',
-            delSudoku: 'btn-del-sudoku', delMinefield: 'btn-del-minefield',
-            delAll: 'btn-del-all'
+            delSudoku: 'btn-del-sudoku', delMinefield: 'btn-del-minefield', delPoker: 'btn-del-poker',
+            delAll: 'btn-del-all',
+            onlineToggleLabel: 'onlineToggleLabel', onlineToggleSub: 'onlineToggleSub',
+            descOnlineTavla: 'descOnlineTavla', descOnlinePoker: 'descOnlinePoker'
         };
+
+        // Online games toggle
+        let onlineVisible = localStorage.getItem('onlineGamesVisible') === 'true';
+        function applyOnlineToggle() {
+            const grid = document.getElementById('onlineGrid');
+            const sw = document.getElementById('onlineToggleSwitch');
+            if (onlineVisible) {
+                grid.classList.add('visible');
+                sw.classList.add('on');
+            } else {
+                grid.classList.remove('visible');
+                sw.classList.remove('on');
+            }
+        }
+        function toggleOnlineGames() {
+            onlineVisible = !onlineVisible;
+            localStorage.setItem('onlineGamesVisible', onlineVisible);
+            applyOnlineToggle();
+        }
+        applyOnlineToggle();
 
         function setLang(lang) {
             currentLang = lang;
@@ -184,7 +282,8 @@
                     deleteDatabasePromise('damaGameDB'),
                     deleteDatabasePromise('unoGameDB'),
                     deleteDatabasePromise('sudokuGameDB'),
-                    deleteDatabasePromise('minefieldGameDB')
+                    deleteDatabasePromise('minefieldGameDB'),
+                    deleteDatabasePromise('pokerGameDB')
                 ]);
 
                 const anyBlocked = results.some(res => res.blocked);
