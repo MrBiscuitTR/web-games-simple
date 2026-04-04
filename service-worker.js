@@ -1,4 +1,4 @@
-const CACHE_NAME = 'web-games-cache-v1.1.1';
+const CACHE_NAME = 'web-games-cache-v1.1.3';
 const ASSETS = [
   '/',
   '/index.html',

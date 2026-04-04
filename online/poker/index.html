@@ -98,19 +98,25 @@
         </div>
     </div>
 
-    <!-- Pot & community cards -->
-    <div class="table-area">
-        <div class="pot-display">
-            <span class="pot-label-text">POT</span>
-            <span id="potAmount" class="pot-amount">$0</span>
-            <span id="totalBetsDisplay" class="total-bets-display"></span>
+    <!-- Play area: ring + floating table -->
+    <div class="play-area">
+        <!-- Players ring -->
+        <div id="playersRing" class="players-ring"></div>
+
+        <!-- Pot & community cards (centered over ring) -->
+        <div class="table-area">
+            <div class="pot-display">
+                <span class="pot-label-text">POT</span>
+                <span id="potAmount" class="pot-amount">$0</span>
+                <span id="totalBetsDisplay" class="total-bets-display"></span>
+            </div>
+            <div id="communityCards" class="community-cards"></div>
+            <div id="stageLabel" class="stage-label">Waiting</div>
         </div>
-        <div id="communityCards" class="community-cards"></div>
-        <div id="stageLabel" class="stage-label">Waiting</div>
     </div>
 
-    <!-- Players ring -->
-    <div id="playersRing" class="players-ring"></div>
+    <!-- My hole cards -->
+    <div id="myCardsArea" class="my-cards-area"></div>
 
     <!-- My action bar -->
     <div id="actionBar" class="action-bar" style="display:none">
@@ -141,9 +147,6 @@
             <button class="act-btn raise-btn raise-confirm" onclick="confirmRaise()">Confirm Raise</button>
         </div>
     </div>
-
-    <!-- My hole cards -->
-    <div id="myCardsArea" class="my-cards-area"></div>
 
 </div>
 

@@ -45,9 +45,12 @@ let lobbyId = null;
 let unsubLobby = null;
 // Track last pushed state string to skip echo-backs
 let lastPushedStateStr = '';
+// Track last processed pending action timestamp (host only)
+let lastProcessedActionTs = 0;
 
 // ─── Game state ───────────────────────────────────────────────────────────────
 let G = null;          // Full game state object
+let gameStarted = false; // Whether game has transitioned from lobby to play
 let turnTimer = null;
 let sessionMoves = []; // For Firestore logging
 let sessionStartTime = null;
@@ -170,6 +173,7 @@ window.createOnlineLobby = async () => {
             players: [{ id: 0, name, isBot: false }],
             started: false,
             state: null,
+            pendingAction: null,
             createdAt: serverTimestamp()
         });
         document.getElementById('onlineLobbyCode').style.display = 'flex';
@@ -226,9 +230,12 @@ window.hostStartOnlineGame = async () => {
     await updateDoc(doc(fdb, 'poker_lobbies', lobbyId), { started: true, players });
 };
 
+// ─── SINGLE SUBSCRIBE FUNCTION ────────────────────────────────────────────────
+// Both createOnlineLobby and joinOnlineLobby call this.
+// Host: processes pendingAction from non-host players.
+// Non-host: applies remote state from host.
 function subscribeLobby(code) {
     if (unsubLobby) unsubLobby();
-    let gameInitialized = false;
 
     unsubLobby = onSnapshot(doc(fdb, 'poker_lobbies', code), (snap) => {
         if (!snap.exists()) {
@@ -236,43 +243,58 @@ function subscribeLobby(code) {
         }
         const data = snap.data();
 
-        // Update player list in lobby screen
+        // Update player list while still on the lobby/start screen
         if (document.getElementById('startScreen').style.display !== 'none') {
-            updateOnlinePlayerList(data.players);
+            updateOnlinePlayerList(data.players || []);
         }
 
-        // Game started — transition to game screen
-        if (data.started && !gameInitialized) {
-            gameInitialized = true;
-            const stack = 1000;
-            const players = data.players.map((p, i) => ({
-                id: i, name: p.name, stack,
-                isBot: p.isBot || false, isHuman: !p.isBot
-            }));
-            document.getElementById('startScreen').style.display = 'none';
-            document.getElementById('gameScreen').style.display = 'flex';
-            document.getElementById('menuLeave').style.display = 'block';
-            document.getElementById('onlineIndicator').style.display = 'flex';
-
-            if (amHost) {
-                // Host runs full game logic
-                initSession(players);
-            } else {
-                // Non-host: initialize G with player list but wait for state from host
-                initSessionPassive(players);
+        if (!gameStarted) {
+            // Waiting for host to mark the game started
+            if (data.started) {
+                gameStarted = true;
+                startOnlineGame(data);
             }
             return;
         }
 
-        // In-game state updates — non-host applies remote state
-        if (data.state && document.getElementById('gameScreen').style.display !== 'none') {
-            if (!amHost) {
-                applyRemoteState(data.state);
+        // Game is running
+        if (document.getElementById('gameScreen').style.display !== 'none') {
+            if (amHost) {
+                // Host processes pending actions submitted by non-host human players
+                if (data.pendingAction) {
+                    handlePendingAction(data);
+                }
+            } else {
+                // Non-host: apply whatever state the host just pushed
+                if (data.state) {
+                    applyRemoteState(data.state);
+                }
             }
         }
-
-        // Host: if state comes back (echo), do nothing — host only pushes
     });
+}
+
+// Transition from lobby to game screen and initialise the session
+function startOnlineGame(data) {
+    const stack = 1000;
+    const players = (data.players || []).map((p, i) => ({
+        id: i, name: p.name, stack,
+        isBot: p.isBot || false, isHuman: !p.isBot
+    }));
+    console.log('[startOnlineGame] amHost=', amHost, 'myUID=', myUID, 'players=', players.map(p => p.name));
+
+    document.getElementById('startScreen').style.display = 'none';
+    document.getElementById('gameScreen').style.display = 'flex';
+    document.getElementById('menuLeave').style.display = 'block';
+    document.getElementById('onlineIndicator').style.display = 'flex';
+
+    if (amHost) {
+        // Host runs full game logic — shuffle, deal, advance stages, run bots
+        initSession(players);
+    } else {
+        // Non-host: set up G skeleton, wait for host to push state
+        initSessionPassive(players);
+    }
 }
 
 // Non-host initializes G with player skeletons, waits for host state
@@ -350,8 +372,6 @@ function startRound() {
     // Reset render caches so new cards are drawn fresh
     const area = document.getElementById('myCardsArea');
     if (area) { area.innerHTML = ''; area.dataset.cardKey = ''; }
-    const cc = document.getElementById('communityCards');
-    if (cc) cc.innerHTML = '';
     const ring = document.getElementById('playersRing');
     if (ring) ring.innerHTML = ''; // force skeleton rebuild on new round
     clearBotTimeouts();
@@ -429,6 +449,7 @@ function nextActiveFrom(startIdx) {
 // ─── ACTION DISPATCH ──────────────────────────────────────────────────────────
 function scheduleCurrentAction() {
     const p = G.players[G.activeIdx];
+    console.log('[scheduleCurrentAction] activeIdx=', G.activeIdx, 'player=', p?.name, 'isBot=', p?.isBot, 'folded=', p?.folded, 'allIn=', p?.allIn, 'amHost=', amHost, 'myUID=', myUID);
     if (!p || p.folded || p.allIn) { advanceAction(); return; }
 
     if (p.isBot) {
@@ -441,9 +462,12 @@ function scheduleCurrentAction() {
 
     // Human player's turn
     if (!isOnline || p.id === myUID) {
+        console.log('[scheduleCurrentAction] showing action bar for seat', p.id);
         showActionBar(G.activeIdx);
         startTurnTimer(TURN_TIMEOUT_S, () => playerAction('fold'));
     } else {
+        // Online: non-host human — action bar shown when guest receives state update
+        console.log('[scheduleCurrentAction] waiting for remote player', p.id, 'to act');
         hideActionBar();
     }
 }
@@ -542,14 +566,36 @@ window.playerAction = (type, raiseToAmount) => {
     }
 };
 
-// Non-host pushes their action; host picks it up and executes
+// Non-host pushes their action; host picks it up in the snapshot and executes it
 async function pushPlayerAction(type, raiseToAmount) {
     if (!lobbyId) return;
+    const action = { uid: myUID, type, raiseToAmount: raiseToAmount || null, ts: Date.now() };
+    console.log('[GUEST] pushPlayerAction', action);
     try {
-        await updateDoc(doc(fdb, 'poker_lobbies', lobbyId), {
-            pendingAction: { uid: myUID, type, raiseToAmount: raiseToAmount || null, ts: Date.now() }
-        });
+        await updateDoc(doc(fdb, 'poker_lobbies', lobbyId), { pendingAction: action });
     } catch (e) { console.error('pushPlayerAction failed:', e); }
+}
+
+// Called by host's snapshot when a pendingAction arrives
+function handlePendingAction(data) {
+    if (!amHost || !G || !data.pendingAction) return;
+    const pa = data.pendingAction;
+    console.log('[HOST] pendingAction received uid=', pa.uid, 'type=', pa.type, 'activeIdx=', G.activeIdx, 'activePlayer.id=', G.players[G.activeIdx]?.id);
+    // Only process if it's for the current active player
+    if (pa.uid !== G.players[G.activeIdx]?.id) {
+        console.warn('[HOST] pendingAction uid mismatch, ignoring');
+        return;
+    }
+    // Prevent processing the same action twice (dedup by timestamp)
+    if (pa.ts === lastProcessedActionTs) {
+        console.warn('[HOST] duplicate pendingAction ts, ignoring');
+        return;
+    }
+    lastProcessedActionTs = pa.ts;
+
+    clearTurnTimer();
+    hideActionBar();
+    executeAction(G.activeIdx, pa.type, pa.raiseToAmount);
 }
 
 function executeAction(idx, type, raiseToAmount) {
@@ -590,8 +636,9 @@ function executeAction(idx, type, raiseToAmount) {
         logMove(p.name, `raises to $${p.bet}`);
     }
 
-    if (isOnline) pushOnlineState();
-    else savePokerState();
+    if (!isOnline) savePokerState();
+    // Online: do NOT push state here — activeIdx still points to the player who just acted.
+    // Push happens inside advanceAction/advanceStage once the NEW activeIdx is known.
     renderGame();
 
     setTimeout(() => advanceAction(), 200);
@@ -613,6 +660,8 @@ function advanceAction() {
 
             if (owes > 0 || hasNotActed) {
                 G.activeIdx = nextIdx;
+                // Push AFTER updating activeIdx so guest sees the correct next player
+                if (isOnline) pushOnlineState();
                 renderGame();
                 scheduleCurrentAction();
                 return;
@@ -752,27 +801,56 @@ function executeBotAction(idx) {
     if (!p || p.folded || p.allIn) { advanceAction(); return; }
 
     const callAmt = G.currentBet - p.bet;
-    const handStrength = estimateHandStrength(p.holeCards, G.community);
+    const hs = estimateHandStrength(p.holeCards, G.community);
     const rand = Math.random();
+    // Pot odds: how much of the pot are we calling?
+    const potOdds = G.pot > 0 ? callAmt / (G.pot + callAmt) : 0;
 
     let action = 'fold';
-    if (callAmt === 0) {
-        if (handStrength > 0.7 && rand < 0.5) action = 'raise';
-        else action = 'check-call';
-    } else if (callAmt >= p.stack) {
-        if (handStrength > 0.65) action = 'check-call';
-        else action = 'fold';
+    let raiseAmt;
+
+    if (callAmt <= 0) {
+        // Free check — mostly check, sometimes bet with decent hand
+        if (hs > 0.65 && rand < 0.55) {
+            action = 'raise';
+        } else if (hs > 0.4 && rand < 0.25) {
+            action = 'raise'; // bluff / semi-bluff
+        } else {
+            action = 'check-call';
+        }
     } else {
-        if (handStrength > 0.8 && rand < 0.4) action = 'raise';
-        else if (handStrength > 0.4) action = 'check-call';
-        else if (rand < 0.1) action = 'check-call';
-        else action = 'fold';
+        // Has to pay to continue
+        const callFraction = callAmt / (p.stack || 1);
+
+        if (callFraction > 0.6) {
+            // Large bet relative to stack — need strong hand
+            if (hs > 0.72) action = 'check-call';
+            else if (hs > 0.5 && rand < 0.3) action = 'check-call'; // gamble sometimes
+            else action = 'fold';
+        } else if (hs > potOdds + 0.15) {
+            // Hand strength significantly exceeds pot odds
+            if (hs > 0.78 && rand < 0.5) action = 'raise';
+            else action = 'check-call';
+        } else if (hs > potOdds - 0.05) {
+            // Marginal call
+            if (rand < 0.55) action = 'check-call';
+            else action = 'fold';
+        } else {
+            // Bad pot odds
+            if (rand < 0.12) action = 'check-call'; // occasional bluff-catch
+            else action = 'fold';
+        }
     }
 
-    let raiseAmt;
     if (action === 'raise') {
-        const pct = [0.33, 0.5, 0.75, 1.0][Math.floor(Math.random() * 4)];
-        raiseAmt = Math.min(Math.round(G.pot * pct) + G.currentBet, p.stack + p.bet);
+        // Bet sizing: 50–120% pot with strong hands, 33–66% pot as bluff/value
+        const sizePct = hs > 0.75
+            ? [0.66, 0.75, 1.0, 1.2][Math.floor(rand * 4)]
+            : [0.33, 0.5, 0.66][Math.floor(rand * 3)];
+        raiseAmt = Math.min(Math.round(G.pot * sizePct) + G.currentBet, p.stack + p.bet);
+        // Must be at least minRaise
+        const minRaise = G.currentBet + Math.max(BIG_BLIND, G.currentBet);
+        raiseAmt = Math.max(raiseAmt, Math.min(minRaise, p.stack + p.bet));
     }
 
     executeAction(idx, action, raiseAmt);
@@ -783,21 +861,28 @@ function estimateHandStrength(hole, community) {
     const r1 = RANK_VAL[hole[0].rank], r2 = RANK_VAL[hole[1].rank];
     const suited = hole[0].suit === hole[1].suit;
     const paired = hole[0].rank === hole[1].rank;
+    const hi = Math.max(r1, r2), lo = Math.min(r1, r2);
+    const gap = hi - lo;
 
-    let base = 0.3;
-    if (paired) base = 0.55 + (r1 - 2) / 26;
-    else {
-        base = (r1 + r2 - 4) / 26;
-        if (suited) base += 0.05;
-        if (Math.abs(r1 - r2) <= 2) base += 0.05;
+    let base;
+    if (paired) {
+        base = 0.5 + (r1 - 2) / 24; // pairs: 0.5 (22) to 0.96 (AA)
+    } else {
+        // High card strength scaled 0.2–0.6
+        base = 0.2 + (hi + lo - 4) / 48;
+        if (suited) base += 0.06;
+        if (gap <= 1) base += 0.07; // connected
+        else if (gap <= 2) base += 0.04;
+        if (hi === 14) base += 0.05; // ace high
     }
     base = Math.max(0.1, Math.min(0.95, base));
 
     if (community.length > 0) {
         const all = [...hole, ...community];
         const h = bestHand(all);
-        const typeBonus = [0, 0.05, 0.1, 0.2, 0.35, 0.45, 0.55, 0.7, 0.85, 0.95];
-        base = Math.max(base, typeBonus[h.type] || 0);
+        // Map hand type (0–9) to strength
+        const typeStrength = [0.15, 0.38, 0.52, 0.65, 0.72, 0.80, 0.88, 0.93, 0.97, 0.99];
+        base = Math.max(base, typeStrength[h.type] || 0);
     }
     return base;
 }
@@ -896,17 +981,12 @@ function renderGame() {
 
 function renderCommunityCards() {
     const cc = document.getElementById('communityCards');
-    const existingCards = cc.querySelectorAll('.playing-card');
-    if (G.community.length > existingCards.length) {
-        cc.innerHTML = '';
-        G.community.forEach(card => cc.appendChild(makeCardEl(card, true)));
-        for (let i = G.community.length; i < 5; i++) {
-            const ph = document.createElement('div');
-            ph.className = 'playing-card face-down';
-            cc.appendChild(ph);
-        }
-    } else if (existingCards.length === 0) {
-        for (let i = 0; i < 5; i++) {
+    // Always rebuild — simple and flicker-free since community cards only change a few times per round
+    cc.innerHTML = '';
+    for (let i = 0; i < 5; i++) {
+        if (i < G.community.length) {
+            cc.appendChild(makeCardEl(G.community[i], false));
+        } else {
             const ph = document.createElement('div');
             ph.className = 'playing-card face-down';
             cc.appendChild(ph);
@@ -929,14 +1009,19 @@ function renderPlayersRing() {
     const W = ring.clientWidth || 360;
     const H = ring.clientHeight || 200;
     const n = G.players.length;
-    const rx = W * 0.42, ry = H * 0.42;
+    // Shrink ellipse so edge players have padding
+    const rx = W * 0.38, ry = H * 0.38;
     const cx = W / 2, cy = H / 2;
 
     const needsFullRebuild = ring.children.length !== n;
     if (needsFullRebuild) ring.innerHTML = '';
 
     G.players.forEach((p, i) => {
-        const angle = ((2 * Math.PI * i) / n) - Math.PI / 2;
+        // Rotate so myUID is always at the bottom (angle = PI/2 = bottom)
+        const myOffset = myUID != null ? myUID : 0;
+        const rotatedI = (i - myOffset + n) % n;
+        // Start at bottom (Math.PI/2), go clockwise
+        const angle = (Math.PI / 2) + (2 * Math.PI * rotatedI) / n;
         const x = cx + rx * Math.cos(angle);
         const y = cy + ry * Math.sin(angle);
 
@@ -997,7 +1082,8 @@ function renderPlayersRing() {
         stackEl.innerText = p.allIn ? 'ALL-IN' : `$${p.stack}`;
         betEl.innerText = p.bet > 0 ? `Bet: $${p.bet}` : '';
 
-        const showCards = p.showHand || p.id === myUID || (!isOnline && !p.isBot);
+        // Show cards for: me (always), showdown reveal, offline (all visible)
+        const showCards = p.showHand || p.id === myUID || (!isOnline && !p.isBot && p.holeCards && p.holeCards[0]);
         const wantReveal = showCards && p.holeCards && p.holeCards.length === 2;
         const currentReveal = cardsDiv.dataset.revealed === '1';
         if (wantReveal !== currentReveal || (wantReveal && cardsDiv.children.length !== 2)) {
@@ -1019,12 +1105,21 @@ function renderMyCards() {
     const area = document.getElementById('myCardsArea');
     if (!G) return;
     const me = G.players.find(p => p.id === myUID);
-    const cardKey = me && me.holeCards ? me.holeCards.map(c => c ? c.rank + c.suit : '?').join(',') : '';
-    if (area.dataset.cardKey === cardKey && area.children.length > 0) return;
-    area.innerHTML = '';
+    const cardKey = me && me.holeCards && me.holeCards.length === 2
+        ? me.holeCards.map(c => c ? c.rank + c.suit : '?').join(',')
+        : 'empty';
+    if (area.dataset.cardKey === cardKey) return;
     area.dataset.cardKey = cardKey;
-    if (!me || !me.holeCards || me.folded || me.holeCards.length < 2) return;
-    me.holeCards.forEach(card => area.appendChild(makeCardEl(card, true)));
+    area.innerHTML = '';
+
+    const hasCards = me && me.holeCards && me.holeCards.length === 2 && me.holeCards[0];
+    if (hasCards && !me.folded) {
+        me.holeCards.forEach(card => area.appendChild(makeCardEl(card, true)));
+    } else {
+        // Always show two face-down placeholders so the area never collapses
+        area.appendChild(makeCardEl(null));
+        area.appendChild(makeCardEl(null));
+    }
 }
 
 function makeCardEl(card, dealt = false) {
@@ -1236,9 +1331,9 @@ async function pushOnlineState() {
         players: G.players.map(p => ({
             id: p.id, name: p.name, stack: p.stack, bet: p.bet,
             folded: p.folded, allIn: p.allIn, showHand: p.showHand,
-            // Send hole cards only if it's a showdown (everyone revealed)
-            // Each client already knows their own cards from local G
-            holeCards: p.showHand ? p.holeCards : p.holeCards.map(() => null)
+            // Always send hole cards — each client needs their own cards.
+            // Opponent cards are masked client-side in renderPlayersRing.
+            holeCards: p.holeCards
         })),
         community: G.community,
         pot: G.pot,
@@ -1251,7 +1346,9 @@ async function pushOnlineState() {
     };
     const stateStr = JSON.stringify(stateToSync);
     lastPushedStateStr = stateStr;
+    console.log('[HOST] pushOnlineState stage=', stateToSync.stage, 'activeIdx=', stateToSync.activeIdx, 'round=', stateToSync.round);
     try {
+        // Also clear pendingAction so the host's own push doesn't re-trigger it
         await updateDoc(doc(fdb, 'poker_lobbies', lobbyId), { state: stateToSync, pendingAction: null });
     } catch (e) { console.error('pushOnlineState failed:', e); }
 }
@@ -1259,23 +1356,20 @@ async function pushOnlineState() {
 function applyRemoteState(remote) {
     if (!G) return;
 
-    // Skip echo-backs (our own pushed state)
-    const stateStr = JSON.stringify(remote);
-    if (stateStr === lastPushedStateStr) return;
+    console.log('[GUEST] applyRemoteState stage=', remote.stage, 'activeIdx=', remote.activeIdx, 'round=', remote.round, 'myUID=', myUID);
 
-    // Track round change to reset render caches
+    // Reset render caches on round change so new cards are drawn fresh
     const roundChanged = remote.round && remote.round !== G.round;
     if (roundChanged) {
+        console.log('[GUEST] round changed', G.round, '->', remote.round, '— clearing render caches');
         const area = document.getElementById('myCardsArea');
         if (area) { area.innerHTML = ''; area.dataset.cardKey = ''; }
-        const cc = document.getElementById('communityCards');
-        if (cc) cc.innerHTML = '';
         const ring = document.getElementById('playersRing');
         if (ring) ring.innerHTML = '';
         lastPushedStateStr = '';
     }
 
-    const prevActiveIdx = G.activeIdx;
+    const prevStage = G.stage;
 
     G.community = remote.community || G.community;
     G.pot = remote.pot ?? G.pot;
@@ -1285,7 +1379,7 @@ function applyRemoteState(remote) {
     G.dealerIdx = remote.dealerIdx ?? G.dealerIdx;
     G.round = remote.round ?? G.round;
 
-    // Update player public state; preserve own hole cards from local G
+    // Update all player state from host (host sends full holeCards now)
     remote.players.forEach(rp => {
         const p = G.players.find(lp => lp.id === rp.id);
         if (!p) return;
@@ -1294,19 +1388,22 @@ function applyRemoteState(remote) {
         p.folded = rp.folded;
         p.allIn = rp.allIn;
         p.showHand = rp.showHand;
-        // Reveal cards at showdown
-        if (rp.showHand && rp.holeCards && rp.holeCards[0]) {
+        // Accept hole cards from host (they know all cards)
+        // Opponent cards masked in renderPlayersRing by checking p.id !== myUID
+        if (rp.holeCards && rp.holeCards.length > 0 && rp.holeCards[0]) {
             p.holeCards = rp.holeCards;
         }
-        // For myself: never overwrite local hole cards with nulls from host
-        // (host sends nulls for non-showdown; client already has their own cards)
     });
+
+    console.log('[GUEST] my cards:', G.players[myUID]?.holeCards);
 
     renderGame();
 
     // Show/hide action bar based on whether it's my turn
     const me = G.players.find(p => p.id === myUID);
-    if (me && !me.folded && !me.allIn && G.activeIdx === myUID && G.stage !== 'showdown') {
+    console.log('[GUEST] myTurn=', G.activeIdx === myUID, 'stage=', G.stage, 'me.folded=', me?.folded, 'me.allIn=', me?.allIn);
+    if (me && !me.folded && !me.allIn && G.activeIdx === myUID && G.stage !== 'showdown' && G.stage !== 'waiting') {
+        console.log('[GUEST] showing action bar');
         showActionBar(G.activeIdx);
         startTurnTimer(TURN_TIMEOUT_S, () => playerAction('fold'));
     } else {
@@ -1316,7 +1413,7 @@ function applyRemoteState(remote) {
     if (remote.sessionOver) { endSession(); }
 
     // Show showdown modal for non-host when stage becomes showdown
-    if (remote.stage === 'showdown' && prevActiveIdx !== -1) {
+    if (remote.stage === 'showdown' && prevStage !== 'showdown') {
         const contenders = G.players.filter(p => !p.folded);
         if (contenders.length > 0 && contenders[0].holeCards && contenders[0].holeCards[0]) {
             const ranked = contenders.map(p => ({
@@ -1335,137 +1432,6 @@ function applyRemoteState(remote) {
         }
     }
 }
-
-// Host listens for pending actions from non-host players
-function listenForPendingActions() {
-    if (!amHost || !lobbyId) return;
-    // We already have the onSnapshot from subscribeLobby.
-    // Handle pendingAction in the snapshot handler.
-}
-
-// Called by host's snapshot when a pendingAction arrives
-function handlePendingAction(data) {
-    if (!amHost || !G || !data.pendingAction) return;
-    const pa = data.pendingAction;
-    // Only process if it's for the current active player
-    if (pa.uid !== G.players[G.activeIdx]?.id) return;
-    // Prevent processing the same action twice
-    if (pa.ts === lastPendingActionTs) return;
-    lastPendingActionTs = pa.ts;
-
-    clearTurnTimer();
-    hideActionBar();
-    executeAction(G.activeIdx, pa.type, pa.raiseToAmount);
-}
-let lastPendingActionTs = 0;
-
-// Patch subscribeLobby to also handle pending actions for host
-const _origSubscribeLobby = subscribeLobby;
-// Override by re-subscribing with pendingAction handling inline
-function subscribeLobbyWithActions(code) {
-    if (unsubLobby) unsubLobby();
-    let gameInitialized = false;
-
-    unsubLobby = onSnapshot(doc(fdb, 'poker_lobbies', code), (snap) => {
-        if (!snap.exists()) {
-            alert('Lobby closed.'); window.location.reload(); return;
-        }
-        const data = snap.data();
-
-        if (document.getElementById('startScreen').style.display !== 'none') {
-            updateOnlinePlayerList(data.players || []);
-        }
-
-        if (data.started && !gameInitialized) {
-            gameInitialized = true;
-            const stack = 1000;
-            const players = (data.players || []).map((p, i) => ({
-                id: i, name: p.name, stack,
-                isBot: p.isBot || false, isHuman: !p.isBot
-            }));
-            document.getElementById('startScreen').style.display = 'none';
-            document.getElementById('gameScreen').style.display = 'flex';
-            document.getElementById('menuLeave').style.display = 'block';
-            document.getElementById('onlineIndicator').style.display = 'flex';
-
-            if (amHost) {
-                initSession(players);
-            } else {
-                initSessionPassive(players);
-            }
-            return;
-        }
-
-        if (document.getElementById('gameScreen').style.display !== 'none') {
-            if (amHost) {
-                // Host processes pending actions from non-host players
-                handlePendingAction(data);
-            } else {
-                // Non-host applies remote state
-                if (data.state) {
-                    applyRemoteState(data.state);
-                }
-            }
-        }
-    });
-}
-
-// Replace subscribeLobby usage with the enhanced version
-window.createOnlineLobby = async () => {
-    const name = document.getElementById('onlineName').value.trim() || 'Host';
-    myName = name;
-    amHost = true;
-    myUID = 0;
-    isOnline = true;
-    lobbyId = genCode();
-
-    setOnlineStatus('Creating lobby...');
-    try {
-        await setDoc(doc(fdb, 'poker_lobbies', lobbyId), {
-            host: name,
-            players: [{ id: 0, name, isBot: false }],
-            started: false,
-            state: null,
-            pendingAction: null,
-            createdAt: serverTimestamp()
-        });
-        document.getElementById('onlineLobbyCode').style.display = 'flex';
-        document.getElementById('onlineLobbyCodeVal').innerText = lobbyId;
-        document.getElementById('onlineBotRow').style.display = 'flex';
-        document.getElementById('onlineStartGameBtn').style.display = 'block';
-        document.getElementById('onlinePlayerList').style.display = 'flex';
-        setOnlineStatus('');
-        subscribeLobbyWithActions(lobbyId);
-    } catch (e) { setOnlineStatus('Error: ' + e.message); }
-};
-
-window.joinOnlineLobby = async () => {
-    const name = document.getElementById('onlineName').value.trim() || 'Player';
-    const code = document.getElementById('joinCode').value.trim().toUpperCase();
-    if (!code) { setOnlineStatus('Enter a lobby code.'); return; }
-    setOnlineStatus('Joining...');
-    try {
-        const ref = doc(fdb, 'poker_lobbies', code);
-        const snap = await getDoc(ref);
-        if (!snap.exists()) { setOnlineStatus('Lobby not found.'); return; }
-        const data = snap.data();
-        if (data.started) { setOnlineStatus('Game already started.'); return; }
-        if (data.players.length >= 10) { setOnlineStatus('Lobby is full (10 players max).'); return; }
-
-        myUID = data.players.length;
-        myName = name;
-        amHost = false;
-        isOnline = true;
-        lobbyId = code;
-
-        const newPlayers = [...data.players, { id: myUID, name, isBot: false }];
-        await updateDoc(ref, { players: newPlayers });
-        setOnlineStatus('');
-        document.getElementById('onlinePlayerList').style.display = 'flex';
-        document.getElementById('onlineWaitMsg').style.display = 'flex';
-        subscribeLobbyWithActions(code);
-    } catch (e) { setOnlineStatus('Error: ' + e.message); }
-};
 
 // ─── WINDOW EVENTS ───────────────────────────────────────────────────────────
 window.addEventListener('resize', () => {
