@@ -3,7 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Texas Hold'em Poker</title>
+    <title>Texas Hold'em — Free Play-Money Card Game, No Gambling | Parasız Sanal Poker</title>
+    <meta name="description" content="A free Texas Hold'em card game for entertainment only. Played with valueless virtual chips (shown as ¤, not a real currency): no real money, no betting, no wagering, no purchases, no prizes and no way to deposit or cash out. | Tamamen sanal, parasız Texas Hold'em kart oyunu: gerçek para yok, bahis yok, ödül yok, para yatırma veya çekme yok.">
+    <meta name="keywords" content="free play money poker, virtual chips card game, texas holdem practice game, no real money card game, learn poker hand rankings, sanal poker, parasız poker, bahissiz kart oyunu, eğlence amaçlı kart oyunu">
+    <meta name="author" content="Çağan Çalıdağ">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="rating" content="general">
+    <meta name="theme-color" content="#1a1a2e">
+    <link rel="canonical" href="https://games.cagancalidag.com/online/poker/">
+
+    <!-- Explicit non-gambling declaration. This game has no wagering, no purchases,
+         no prizes and no cash-out path of any kind; chips are valueless tokens. -->
+    <meta name="gambling" content="none">
+    <meta name="real-money-gaming" content="false">
+    <meta name="in-app-purchases" content="none">
+
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Game Hub">
+    <meta property="og:title" content="Texas Hold'em — Free Play-Money Card Game (No Gambling)">
+    <meta property="og:description" content="Entertainment-only Texas Hold'em with valueless virtual chips. No real money, no betting, no purchases, no prizes, no cash-out.">
+    <meta property="og:url" content="https://games.cagancalidag.com/online/poker/">
+    <meta property="og:image" content="https://games.cagancalidag.com/favicon.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="tr_TR">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Texas Hold'em — Free Play-Money Card Game (No Gambling)">
+    <meta name="twitter:description" content="Entertainment-only card game with valueless virtual chips. No real money, no betting, no cash-out.">
+    <meta name="twitter:image" content="https://games.cagancalidag.com/favicon.png">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "VideoGame",
+      "name": "Texas Hold'em (Play Money)",
+      "alternateName": ["Sanal Poker", "Play-Money Texas Hold'em"],
+      "url": "https://games.cagancalidag.com/online/poker/",
+      "image": "https://games.cagancalidag.com/favicon.png",
+      "description": "A free Texas Hold'em card game for entertainment only. It is played exclusively with valueless virtual chips, displayed with the generic placeholder currency sign (U+00A4) rather than any real currency, and involves no gambling of any kind: no real-money wagering, no stakes, no purchases, no prizes, no deposits and no way to convert chips into money or anything of value. Chips reset each session and cannot be traded, transferred or redeemed.",
+      "inLanguage": ["en", "tr"],
+      "genre": ["Card Game", "Casual"],
+      "gamePlatform": "Web Browser",
+      "playMode": ["SinglePlayer", "MultiPlayer"],
+      "applicationCategory": "GameApplication",
+      "operatingSystem": "Any",
+      "isAccessibleForFree": true,
+      "contentRating": "Entertainment only — no real-money gambling, no wagering, no purchases and no prizes.",
+      "author": { "@type": "Person", "name": "Çağan Çalıdağ" },
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD", "availability": "https://schema.org/InStock" },
+      "disambiguatingDescription": "This is not a gambling service. No money or thing of value can be staked, won, withdrawn or purchased."
+    }
+    </script>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -19,7 +68,15 @@
     <div class="lobby-card">
         <div class="lobby-logo">🃏</div>
         <h1>Texas Hold'em</h1>
-        <p class="lobby-subtitle">Classic poker. Offline &amp; Online.</p>
+        <p class="lobby-subtitle">Classic card game. Offline &amp; Online.</p>
+
+        <!-- Non-gambling notice (EN + TR). Keep this visible: the game must never be
+             mistaken for a real-money service. -->
+        <div class="play-money-notice" role="note">
+            <strong>🎮 Play money only — this is not gambling.</strong>
+            <span>Chips are valueless virtual tokens, shown with the generic placeholder sign <b>¤</b> — they are not any real currency. There is no real-money play, no betting or wagering, no purchases, no prizes, and no way to deposit, withdraw or cash out. Chips reset when a session ends and cannot be traded or transferred.</span>
+            <span lang="tr"><strong>Sadece sanal oyun — kumar değildir.</strong> Chipler hiçbir maddi değeri olmayan sanal jetonlardır ve <b>¤</b> genel simgesiyle gösterilir; herhangi bir gerçek para birimi değildir. Gerçek para ile oyun, bahis, satın alma veya ödül yoktur; para yatırma, çekme ya da nakde çevirme imkânı bulunmamaktadır. Chipler oturum bitince sıfırlanır, devredilemez ve takas edilemez.</span>
+        </div>
 
         <div class="start-tabs">
             <button class="tab-btn active" id="tabOffline" onclick="showTab('offline')">Offline</button>
@@ -33,7 +90,7 @@
                 <input type="text" id="offlineName" placeholder="Player 1" maxlength="20" />
             </div>
             <div class="form-group">
-                <label>Starting Stack ($)</label>
+                <label>Starting Chips (¤, virtual)</label>
                 <input type="number" id="startingStack" value="1000" min="100" max="100000" step="100" />
             </div>
             <div class="form-group">
@@ -80,7 +137,7 @@
     <!-- Top bar -->
     <div class="top-bar">
         <a href="/" class="global-hub-btn" title="Home">🏠</a>
-        <div id="gameTitle" class="game-title">Texas Hold'em</div>
+        <div id="gameTitle" class="game-title">Texas Hold'em <span class="play-money-badge" title="Valueless virtual chips — no real money, no betting, no cash-out. / Değersiz sanal chip — gerçek para, bahis veya nakde çevirme yoktur.">PLAY MONEY · SANAL PARA</span></div>
         <div class="top-bar-right">
             <div id="onlineIndicator" class="online-badge" style="display:none">● ONLINE</div>
             <button class="icon-btn" id="menuBtn" onclick="toggleMenu()">☰</button>
@@ -107,7 +164,7 @@
         <div class="table-area">
             <div class="pot-display">
                 <span class="pot-label-text">POT</span>
-                <span id="potAmount" class="pot-amount">$0</span>
+                <span id="potAmount" class="pot-amount">¤0</span>
                 <span id="totalBetsDisplay" class="total-bets-display"></span>
             </div>
             <div id="communityCards" class="community-cards"></div>
@@ -140,7 +197,7 @@
             <div class="raise-input-row">
                 <input type="range" id="raiseSlider" min="0" max="1000" value="0" oninput="syncRaiseInput(this.value)" />
                 <div class="raise-number-wrap">
-                    <span>$</span>
+                    <span aria-label="virtual chips">¤</span>
                     <input type="number" id="raiseInput" value="0" oninput="syncRaiseSlider(this.value)" />
                 </div>
             </div>
@@ -195,6 +252,14 @@
                 <li>Blinds rotate each round. Big blind = 2× Small blind.</li>
                 <li>Actions: Fold, Check/Call, Raise/Bet.</li>
                 <li>All-in creates side pots when needed.</li>
+            </ul>
+            <h3>Play Money Only</h3>
+            <ul>
+                <li>All chips are valueless virtual tokens with no cash value. The <b>¤</b> sign is a generic placeholder and is not any real currency.</li>
+                <li>There is no real-money play, betting or wagering of any kind.</li>
+                <li>Nothing can be bought, deposited, withdrawn, won or cashed out.</li>
+                <li>Chips reset at the end of a session and cannot be traded or transferred.</li>
+                <li lang="tr">Türkçe: Bu oyun tamamen sanaldır ve kumar değildir. Chiplerin hiçbir maddi değeri yoktur; gerçek para, bahis, ödül, para yatırma veya çekme söz konusu değildir.</li>
             </ul>
         </div>
     </div>

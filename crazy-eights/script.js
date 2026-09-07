@@ -2,8 +2,9 @@ const DICT = {
     en: {
         setup: "Setup Game", players: "Players: ", start: "Start", del: "Delete Data", newGame: "New Game", pTurn: "Player {n} Turn",
         showCards: "Tap to show cards", endTurn: "End Turn", passPhone: "Pass Phone", rulesTitle: "Rules", win: "Player {n} Wins!",
-        menu: "Menu", forgot: "Forgot UNO! Drew 2 cards.", undo: "Undo", drawBtn: "+ Draw",
-        unoCall: "UNO! Player {n} has one card left!",
+        menu: "Menu", forgot: "Forgot to call Last Card! Drew 2 cards.", undo: "Undo", drawBtn: "+ Draw",
+        title: "Crazy Eights", lastCardBtn: "Last Card!",
+        unoCall: "Last Card! Player {n} has one card left!",
         rules: `
             <ul>
                 <li><strong>Goal:</strong> Be the first player to get rid of all your cards.</li>
@@ -17,15 +18,16 @@ const DICT = {
                         <li><strong>Reverse:</strong> Reverses play direction. (Acts as a Skip in a 2-player game).</li>
                     </ul>
                 </li>
-                <li><strong>UNO!:</strong> You MUST tap <strong>[UNO!]</strong> when you play your second-to-last card. If you forget, you draw 2 penalty cards.</li>
+                <li><strong>Last Card!:</strong> You MUST tap <strong>[Last Card!]</strong> when you play your second-to-last card. If you forget, you draw 2 penalty cards.</li>
                 <li><strong>Undo:</strong> You can undo your card play ONCE per turn, provided you haven't passed the phone yet. (+2 cards cannot be undone).</li>
             </ul>`
     },
     tr: {
         setup: "Oyunu Kur", players: "Oyuncular: ", start: "Başlat", del: "Verileri Sil", newGame: "Yeni Oyun", pTurn: "Oyuncu {n} Sırası",
         showCards: "Kartları gör", endTurn: "Turu Bitir", passPhone: "Telefonu Devret", rulesTitle: "Kurallar", win: "Oyuncu {n} Kazandı!",
-        menu: "Menü", forgot: "UNO demeyi unuttun! 2 kart çektin.", undo: "Geri Al", drawBtn: "+ Çek",
-        unoCall: "UNO! Oyuncu {n}'in bir kartı kaldı!",
+        menu: "Menü", forgot: "Son Kart demeyi unuttun! 2 kart çektin.", undo: "Geri Al", drawBtn: "+ Çek",
+        title: "Deli Sekizler", lastCardBtn: "Son Kart!",
+        unoCall: "Son Kart! Oyuncu {n}'in bir kartı kaldı!",
         rules: `
             <ul>
                 <li><strong>Hedef:</strong> Elindeki tüm kartlardan kurtulan ilk oyuncu olmak.</li>
@@ -39,7 +41,7 @@ const DICT = {
                         <li><strong>Yön Değiştir (Rev):</strong> Oyunun yönü tersine döner. (2 kişilik oyunda Pas yerine geçer).</li>
                     </ul>
                 </li>
-                <li><strong>UNO!:</strong> Sondan ikinci kartını atarken <strong>[UNO!]</strong> butonuna basmak ZORUNDASIN. Unutursan 2 ceza kartı çekersin.</li>
+                <li><strong>Son Kart!:</strong> Sondan ikinci kartını atarken <strong>[Son Kart!]</strong> butonuna basmak ZORUNDASIN. Unutursan 2 ceza kartı çekersin.</li>
                 <li><strong>Geri Al:</strong> Turu bitirmeden önce, attığın kartı tur başına BİR KEZ geri alabilirsin. (+2 kartları geri alınamaz).</li>
             </ul>`
     }
@@ -302,6 +304,7 @@ function updateUI() {
     document.getElementById('ui-rules-title').innerText = d.rulesTitle; document.getElementById('rules-text').innerHTML = d.rules;
     document.getElementById('ui-game-menu').innerText = d.menu; document.getElementById('ui-game-menu-pass').innerText = d.menu;
     document.getElementById('btn-undo').innerText = d.undo; document.getElementById('btn-draw').innerText = d.drawBtn;
+    document.getElementById('ui-title').innerText = d.title; document.getElementById('btn-uno').innerText = d.lastCardBtn;
     document.getElementById('val-p').innerText = s.pCount;
     
     if(state) {

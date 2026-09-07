@@ -1,4 +1,4 @@
-const CACHE_NAME = 'web-games-cache-v1.1.3';
+const CACHE_NAME = 'web-games-cache-v1.3.0';
 const ASSETS = [
   '/',
   '/index.html',
@@ -10,7 +10,7 @@ const ASSETS = [
   '/casus-kim/index.html', '/casus-kim/script.js', '/casus-kim/style.css',
   '/chess/index.html', '/chess/script.js', '/chess/style.css',
   '/dama/index.html', '/dama/script.js', '/dama/style.css',
-  '/uno/index.html', '/uno/script.js', '/uno/style.css',
+  '/crazy-eights/index.html', '/crazy-eights/script.js', '/crazy-eights/style.css',
   '/sudoku/index.html', '/sudoku/script.js', '/sudoku/style.css',
   '/minefield/index.html', '/minefield/script.js', '/minefield/style.css',
   // Online games — cache HTML/CSS for layout; JS loaded from network (Firebase ESM)

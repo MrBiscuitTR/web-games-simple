@@ -429,7 +429,7 @@ function postBlind(idx, amount) {
     p.bet += actual;
     G.pot += actual;
     if (p.stack === 0) p.allIn = true;
-    logMove(p.name, actual === amount ? `posts blind $${amount}` : `posts blind $${actual} (all-in)`);
+    logMove(p.name, actual === amount ? `posts blind ¤${amount}` : `posts blind ¤${actual} (all-in)`);
 }
 
 function getActivePlayers() {
@@ -484,7 +484,7 @@ function showActionBar(idx) {
         checkCallBtn.className = 'act-btn check-btn';
     } else {
         const actual = Math.min(callAmt, p.stack);
-        checkCallBtn.innerText = `Call $${actual}`;
+        checkCallBtn.innerText = `Call ¤${actual}`;
         checkCallBtn.className = 'act-btn check-btn';
     }
 
@@ -504,8 +504,8 @@ function showActionBar(idx) {
         raiseBtn.innerText = G.currentBet > 0 ? 'Raise' : 'Bet';
     }
 
-    document.getElementById('callAmount').innerText = callAmt > 0 ? `To call: $${Math.min(callAmt, p.stack)}` : 'Your turn';
-    document.getElementById('myStack').innerText = `Stack: $${p.stack}`;
+    document.getElementById('callAmount').innerText = callAmt > 0 ? `To call: ¤${Math.min(callAmt, p.stack)}` : 'Your turn';
+    document.getElementById('myStack').innerText = `Chips: ¤${p.stack}`;
 }
 
 function hideActionBar() {
@@ -619,8 +619,8 @@ function executeAction(idx, type, raiseToAmount) {
             p.bet += actual;
             G.pot += actual;
             if (p.stack === 0) { p.allIn = true; showActionIndicator(idx, 'allin', 'All-in'); }
-            else showActionIndicator(idx, 'call', `Call $${actual}`);
-            logMove(p.name, `calls $${actual}`);
+            else showActionIndicator(idx, 'call', `Call ¤${actual}`);
+            logMove(p.name, `calls ¤${actual}`);
         }
 
     } else if (type === 'raise') {
@@ -631,9 +631,9 @@ function executeAction(idx, type, raiseToAmount) {
         G.pot += raiseAmt;
         G.currentBet = Math.max(G.currentBet, p.bet);
         G.players.forEach((op, oi) => { if (oi !== idx) op._actedThisStreet = false; });
-        if (p.stack === 0) { p.allIn = true; showActionIndicator(idx, 'allin', `All-in $${p.bet}`); }
-        else showActionIndicator(idx, 'raise', `Raise $${p.bet}`);
-        logMove(p.name, `raises to $${p.bet}`);
+        if (p.stack === 0) { p.allIn = true; showActionIndicator(idx, 'allin', `All-in ¤${p.bet}`); }
+        else showActionIndicator(idx, 'raise', `Raise ¤${p.bet}`);
+        logMove(p.name, `raises to ¤${p.bet}`);
     }
 
     if (!isOnline) savePokerState();
@@ -996,11 +996,11 @@ function renderCommunityCards() {
 }
 
 function renderPot() {
-    document.getElementById('potAmount').innerText = `$${G.pot}`;
+    document.getElementById('potAmount').innerText = `¤${G.pot}`;
     const totalBets = G.players.reduce((sum, p) => sum + (p.bet || 0), 0);
     const betsEl = document.getElementById('totalBetsDisplay');
     if (betsEl) {
-        betsEl.innerText = totalBets > 0 ? `+ $${totalBets} in bets` : '';
+        betsEl.innerText = totalBets > 0 ? `+ ¤${totalBets} in play` : '';
     }
 }
 
@@ -1079,8 +1079,8 @@ function renderPlayersRing() {
             dealerBadge.remove();
         }
 
-        stackEl.innerText = p.allIn ? 'ALL-IN' : `$${p.stack}`;
-        betEl.innerText = p.bet > 0 ? `Bet: $${p.bet}` : '';
+        stackEl.innerText = p.allIn ? 'ALL-IN' : `¤${p.stack}`;
+        betEl.innerText = p.bet > 0 ? `Bet: ¤${p.bet}` : '';
 
         // Show cards for: me (always), showdown reveal, offline (all visible)
         const showCards = p.showHand || p.id === myUID || (!isOnline && !p.isBot && p.holeCards && p.holeCards[0]);
@@ -1173,7 +1173,7 @@ function showShowdownModal(ranked, payout, winners) {
         info.innerHTML = `
             <div class="showdown-name">${p.name}${p.id === myUID ? ' (You)' : ''}</div>
             <div class="showdown-hand">${result ? result.name : 'Folded'}</div>
-            ${won > 0 ? `<div class="showdown-won">+$${won}</div>` : ''}`;
+            ${won > 0 ? `<div class="showdown-won">+¤${won}</div>` : ''}`;
 
         row.appendChild(cardsDiv);
         row.appendChild(info);
@@ -1265,7 +1265,7 @@ function showSessionModal() {
     sorted.forEach(p => {
         const row = document.createElement('div');
         row.className = 'session-row' + (p.id === myUID ? ' winner' : '');
-        row.innerHTML = `<span>${p.name}${p.id === myUID ? ' (You)' : ''}</span><span>$${p.stack}</span>`;
+        row.innerHTML = `<span>${p.name}${p.id === myUID ? ' (You)' : ''}</span><span>¤${p.stack}</span>`;
         content.appendChild(row);
     });
     document.getElementById('sessionModal').style.display = 'flex';

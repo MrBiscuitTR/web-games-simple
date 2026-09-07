@@ -1,6 +1,9 @@
 {
-  "name": "Game Hub",
+  "name": "Game Hub — Free Browser Games",
   "short_name": "Games",
+  "description": "A free, ad-free collection of classic games playable in the browser: Tavla (backgammon), Chess, Dama, Sudoku, Minesweeper, Spyfall and card games. Entertainment only — no real-money play, no purchases, no gambling.",
+  "lang": "en",
+  "categories": ["games", "entertainment"],
   "display": "standalone",
   "background_color": "#1a1a2e",
   "theme_color": "#1a1a2e",

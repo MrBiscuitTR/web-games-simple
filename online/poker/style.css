@@ -55,6 +55,18 @@ html, body {
 .lobby-logo { font-size: 3.5rem; text-align: center; }
 .lobby-card h1 { text-align: center; font-size: 2rem; color: var(--accent); }
 .lobby-subtitle { text-align: center; color: var(--text-dim); font-size: 0.95rem; }
+.play-money-notice {
+    display: flex; flex-direction: column; gap: 6px;
+    background: rgba(46,204,113,0.08); border: 1px solid rgba(46,204,113,0.35);
+    border-radius: 8px; padding: 12px 14px;
+    font-size: 0.78rem; line-height: 1.45; color: var(--text-dim); text-align: left;
+}
+.play-money-notice strong { color: #2ecc71; font-size: 0.85rem; }
+.play-money-badge {
+    display: inline-block; padding: 2px 6px; border-radius: 4px; white-space: nowrap;
+    background: rgba(46,204,113,0.15); border: 1px solid rgba(46,204,113,0.4);
+    color: #2ecc71; font-size: 0.6rem; letter-spacing: 0.5px; font-weight: normal;
+}
 .start-tabs { display: flex; gap: 8px; background: rgba(255,255,255,0.05); border-radius: 8px; padding: 4px; }
 .tab-btn { flex: 1; padding: 10px; border: none; border-radius: 6px; background: transparent; color: var(--text-dim); cursor: pointer; font-weight: bold; font-size: 0.95rem; transition: 0.2s; }
 .tab-btn.active { background: var(--accent); color: #fff; }
@@ -112,7 +124,7 @@ html, body {
     background: rgba(0,0,0,0.4); backdrop-filter: blur(10px);
     z-index: 20;
 }
-.game-title { flex: 1; text-align: center; font-weight: bold; color: var(--gold); font-size: 1rem; }
+.game-title { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; font-weight: bold; color: var(--gold); font-size: 1rem; }
 .top-bar-right { display: flex; align-items: center; gap: 8px; }
 .online-badge { font-size: 0.75rem; color: var(--green); font-weight: bold; background: rgba(46,204,113,0.15); padding: 4px 10px; border-radius: 20px; }
 .icon-btn { background: rgba(255,255,255,0.1); border: none; color: #fff; font-size: 1.2rem; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }

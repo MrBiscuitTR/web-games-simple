@@ -3,9 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Game Hub | Çağan Çalıdağ</title>
-    <meta name="description" content="Modern web adaptations of classic games. Play Backgammon (Tavla), Spy, Chess, Dama, UNO, Sudoku, Minefield, and Poker (offline with bots, or online in a lobby).">
-    <meta name="keywords" content="tavla, Casus kim, spyfall, spy, dama, checkers, uno, sudoku, minefield, minesweeper, poker, online games, party games">
+    <title>Game Hub — Free Browser Games, No Ads | Ücretsiz Tarayıcı Oyunları</title>
+    <meta name="description" content="Play classic games free in your browser: Backgammon (Tavla), Chess, Checkers (Dama), Sudoku, Minesweeper, Spyfall and card games. No ads, no downloads, no sign-up, works offline. | Tarayıcıda ücretsiz klasik oyunlar: tavla, satranç, dama, sudoku, mayın tarlası. Reklamsız, indirmeden oynayın.">
+    <meta name="keywords" content="free browser games, no download games, offline games, tavla, backgammon, satranç, chess, dama, checkers, sudoku, minesweeper, mayın tarlası, casus kim, spyfall, card game, party games, ücretsiz oyunlar, online oyun">
+    <meta name="author" content="Çağan Çalıdağ">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="theme-color" content="#1a1a2e">
+    <link rel="canonical" href="https://games.cagancalidag.com/">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Game Hub">
+    <meta property="og:title" content="Game Hub — Free Browser Games, No Ads">
+    <meta property="og:description" content="Classic games playable free in your browser: Tavla, Chess, Dama, Sudoku, Minesweeper, Spyfall and more. No ads, no downloads, no sign-up.">
+    <meta property="og:url" content="https://games.cagancalidag.com/">
+    <meta property="og:image" content="https://games.cagancalidag.com/favicon.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="tr_TR">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Game Hub — Free Browser Games, No Ads">
+    <meta name="twitter:description" content="Classic games playable free in your browser. No ads, no downloads, no sign-up.">
+    <meta name="twitter:image" content="https://games.cagancalidag.com/favicon.png">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Game Hub",
+      "alternateName": "Oyun Merkezi",
+      "url": "https://games.cagancalidag.com/",
+      "inLanguage": ["en", "tr"],
+      "description": "A free, ad-free collection of classic games playable directly in the browser, with offline support. All games are for entertainment only and involve no real-money play.",
+      "author": { "@type": "Person", "name": "Çağan Çalıdağ" },
+      "isFamilyFriendly": true,
+      "isAccessibleForFree": true,
+      "hasPart": [
+        { "@type": "VideoGame", "name": "Tavla", "alternateName": "Turkish Backgammon", "url": "https://games.cagancalidag.com/tavla/" },
+        { "@type": "VideoGame", "name": "Casus Kim?", "alternateName": "Spyfall", "url": "https://games.cagancalidag.com/casus-kim/" },
+        { "@type": "VideoGame", "name": "Chess", "alternateName": "Satranç", "url": "https://games.cagancalidag.com/chess/" },
+        { "@type": "VideoGame", "name": "Checkers", "alternateName": "Dama", "url": "https://games.cagancalidag.com/dama/" },
+        { "@type": "VideoGame", "name": "Sudoku", "url": "https://games.cagancalidag.com/sudoku/" },
+        { "@type": "VideoGame", "name": "Minefield", "alternateName": "Mayın Tarlası", "url": "https://games.cagancalidag.com/minefield/" },
+        { "@type": "VideoGame", "name": "Crazy Eights", "alternateName": "Deli Sekizler", "url": "https://games.cagancalidag.com/crazy-eights/" },
+        { "@type": "VideoGame", "name": "Tavla Online", "url": "https://games.cagancalidag.com/online/tavla/" },
+        {
+          "@type": "VideoGame",
+          "name": "Texas Hold'em (Play Money)",
+          "url": "https://games.cagancalidag.com/online/poker/",
+          "description": "A free play-money Texas Hold'em card game for entertainment only. Uses valueless virtual chips. No wagering, no purchases, no prizes and no way to deposit or cash out.",
+          "isAccessibleForFree": true,
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD", "availability": "https://schema.org/InStock" }
+        }
+      ]
+    }
+    </script>
+
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" href="/favicon.png">
@@ -68,6 +120,9 @@
             gap: 2rem; margin-top: 1.5rem;
         }
         .online-grid.visible { display: grid; }
+        .play-money-pill { display: inline-block; vertical-align: middle; margin-left: 6px; padding: 3px 7px; border-radius: 4px; background: rgba(46,204,113,0.15); border: 1px solid rgba(46,204,113,0.45); color: var(--online-accent); font-size: 0.6rem; letter-spacing: 0.5px; }
+        .site-footer { width: 100%; max-width: 1000px; margin-top: 3rem; padding: 1.25rem 0 0; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.78rem; line-height: 1.6; color: rgba(255,255,255,0.55); text-align: center; }
+        .site-footer p { margin-bottom: 0.5rem; }
         .game-card.online-card { border: 1px solid rgba(46,204,113,0.2); }
         .game-card.online-card:hover { border-color: rgba(46,204,113,0.5); }
         .online-badge-pill {
@@ -98,7 +153,7 @@
             <button class="db-btn" onclick="clearDB('casusKimGameDB')" id="btn-del-spy">Reset Casus Kim?</button>
             <button class="db-btn" onclick="clearDB('chessGameDB')" id="btn-del-chess">Reset Chess</button>
             <button class="db-btn" onclick="clearDB('damaGameDB')" id="btn-del-dama">Reset Checkers</button>
-            <button class="db-btn" onclick="clearDB('unoGameDB')" id="btn-del-uno">Reset UNO</button>
+            <button class="db-btn" onclick="clearDB('unoGameDB')" id="btn-del-uno">Reset Crazy Eights</button>
             <button class="db-btn" onclick="clearDB('sudokuGameDB')" id="btn-del-sudoku">Reset Sudoku</button>
             <button class="db-btn" onclick="clearDB('minefieldGameDB')" id="btn-del-minefield">Reset Minefield</button>
             <button class="db-btn" onclick="clearDB('pokerGameDB')" id="btn-del-poker">Reset Poker</button>
@@ -119,8 +174,8 @@
         <a href="dama/index.html" class="game-card">
             <div class="game-icon">🏁</div><h2 id="titleDama">Checkers</h2><p id="descDama">Turkish & International Checkers.</p>
         </a>
-        <a href="uno/index.html" class="game-card">
-            <div class="game-icon">🃏</div><h2 id="titleUno">UNO</h2><p id="descUno">Pass-the-phone card game. 2-10 players.</p>
+        <a href="crazy-eights/index.html" class="game-card">
+            <div class="game-icon">🃏</div><h2 id="titleUno">Crazy Eights</h2><p id="descUno">Pass-the-phone card game. 2-10 players.</p>
         </a>
         <a href="sudoku/index.html" class="game-card">
             <div class="game-icon">🔢</div><h2 id="titleSudoku">Sudoku</h2><p id="descSudoku">Classic number puzzle. 3 difficulty levels.</p>
@@ -151,11 +206,19 @@
             <a href="online/poker/index.html" class="game-card online-card">
                 <div class="online-badge-pill" id="onlineBadgePoker">Online + Offline</div>
                 <div class="game-icon">🃏</div>
-                <h2>Poker</h2>
-                <p id="descOnlinePoker">Texas Hold'em. Offline bots or online lobby. Up to 10 players.</p>
+                <h2>Poker <span class="play-money-pill" id="playMoneyPill">PLAY MONEY</span></h2>
+                <p id="descOnlinePoker">Texas Hold'em. Offline bots or online lobby. Up to 10 players. Virtual chips only — no real money, no betting, no purchases.</p>
             </a>
         </div>
     </div>
+
+    <!-- Site-wide disclaimer. Kept in static HTML (not JS-injected) so crawlers and
+         regulators see it without executing scripts. -->
+    <footer class="site-footer">
+        <p>All games on this site are free and for entertainment only. There is no real-money play, no betting or wagering, no purchases, no prizes and no way to deposit or withdraw funds. The Texas Hold'em card game uses valueless virtual chips — shown with the generic placeholder sign ¤, which is not any real currency — that reset each session and cannot be traded, transferred or cashed out.</p>
+        <p lang="tr">Bu sitedeki tüm oyunlar ücretsizdir ve yalnızca eğlence amaçlıdır. Gerçek para ile oyun, bahis, satın alma veya ödül yoktur; para yatırma ya da çekme imkânı bulunmamaktadır. Texas Hold'em kart oyunu, hiçbir maddi değeri olmayan, her oturumda sıfırlanan ve devredilemeyen sanal chiplerle oynanır; chipler gerçek bir para birimi olmayan ¤ genel simgesiyle gösterilir.</p>
+        <p>All games here are independent, fan-made implementations of traditional or public-domain games. Any trademarks referenced belong to their respective owners; this site is not affiliated with, endorsed by or sponsored by any of them.</p>
+    </footer>
 
     <script>
         const dict = {
@@ -163,35 +226,37 @@
                 hubTitle: "Game Hub", hubSubtitle: "Modern web adaptations of classic games",
                 descTavla: "Backgammon. Offline, 2 players. (TR Only)", titleSpy: "Spyfall", descSpy: "Pass-the-phone social deduction game.",
                 titleChess: "Chess", descChess: "Classic 8x8 Chess. 2 players.", titleDama: "Checkers", descDama: "Turkish & International Checkers.",
-                titleUno: "UNO", descUno: "Pass-the-phone card game. 2-10 players.",
+                titleUno: "Crazy Eights", descUno: "Pass-the-phone card game. 2-10 players.",
                 titleSudoku: "Sudoku", descSudoku: "Classic number puzzle. 3 difficulty levels.",
                 titleMinefield: "Minefield", descMinefield: "Classic Minesweeper. Customizable grid.",
                 dataManager: "⚙️ Data Management (Reset Games)", delTavla: "Reset Tavla", delSpy: "Reset Casus Kim?",
-                delChess: "Reset Chess", delDama: "Reset Checkers", delUno: "Reset UNO",
+                delChess: "Reset Chess", delDama: "Reset Checkers", delUno: "Reset Crazy Eights",
                 delSudoku: "Reset Sudoku", delMinefield: "Reset Minefield", delPoker: "Reset Poker",
                 delAll: "DELETE ALL GAME DATA", alertDeleted: "Data successfully deleted!",
                 errBlocked: "Deletion Blocked! Please close any open game tabs (or force close the app) and try again.",
                 errBlockedSome: "Some deletions were blocked! Please close any open game tabs and try again.",
                 onlineToggleLabel: "🌐 Online Games", onlineToggleSub: "Real-time multiplayer via lobby codes",
+                onlineBadgeTavla: "Online", onlineBadgePoker: "Online + Offline", playMoneyPill: "PLAY MONEY",
                 descOnlineTavla: "Turkish Backgammon. Real-time 2-player.",
-                descOnlinePoker: "Texas Hold'em. Offline bots or online lobby. Up to 10 players. No real money, fully virtual."
+                descOnlinePoker: "Texas Hold'em. Offline bots or online lobby. Up to 10 players. Virtual chips only — no real money, no betting, no purchases."
             },
             tr: {
                 hubTitle: "Oyun Merkezi", hubSubtitle: "Klasik oyunların modern web uyarlamaları",
                 descTavla: "Erkek ve Kız Tavlası. Çevrimdışı, 2 kişilik.", titleSpy: "Casus Kim?", descSpy: "Cihazı elden ele gezdirerek oynanan sosyal çıkarım oyunu.",
                 titleChess: "Satranç", descChess: "Klasik 8x8 Satranç. 2 kişilik.", titleDama: "Dama", descDama: "Türk Daması ve Uluslararası Dama.",
-                titleUno: "UNO", descUno: "Cihazı devrederek oynanan kart oyunu. 2-10 oyuncu.",
+                titleUno: "Deli Sekizler", descUno: "Cihazı devrederek oynanan kart oyunu. 2-10 oyuncu.",
                 titleSudoku: "Sudoku", descSudoku: "Klasik sayı bulmacası. 3 zorluk seviyesi.",
                 titleMinefield: "Mayın Tarlası", descMinefield: "Klasik Mayın Tarlası. Özelleştirilebilir ızgara.",
                 dataManager: "⚙️ Veri Yönetimi (Oyunları Sıfırla)", delTavla: "Tavla Sıfırla", delSpy: "Casus Kim? Sıfırla",
-                delChess: "Satranç Sıfırla", delDama: "Dama Sıfırla", delUno: "UNO Sıfırla",
+                delChess: "Satranç Sıfırla", delDama: "Dama Sıfırla", delUno: "Deli Sekizler Sıfırla",
                 delSudoku: "Sudoku Sıfırla", delMinefield: "Mayın Tarlası Sıfırla", delPoker: "Poker Sıfırla",
                 delAll: "TÜM OYUN VERİLERİNİ SİL", alertDeleted: "Veriler başarıyla silindi!",
                 errBlocked: "İşlem engellendi! Lütfen arka planda veya başka sekmede açık olan oyunu kapatıp tekrar deneyin.",
                 errBlockedSome: "Bazı silme işlemleri engellendi! Lütfen açık olan oyun sekmelerini kapatıp tekrar deneyin.",
                 onlineToggleLabel: "🌐 Çevrimiçi Oyunlar", onlineToggleSub: "Lobi kodlarıyla gerçek zamanlı çok oyunculu",
+                onlineBadgeTavla: "Çevrimiçi", onlineBadgePoker: "Çevrimiçi + Çevrimdışı", playMoneyPill: "SANAL PARA",
                 descOnlineTavla: "Türk Tavlası. Gerçek zamanlı 2 kişilik.",
-                descOnlinePoker: "Texas Hold'em. Çevrimdışı botlar veya çevrimiçi lobi. 10 oyuncuya kadar. Gerçek para ile oynanmaz, tamamen sanaldır."
+                descOnlinePoker: "Texas Hold'em. Çevrimdışı botlar veya çevrimiçi lobi. 10 oyuncuya kadar. Yalnızca sanal chip — gerçek para, bahis veya satın alma yoktur."
             }
         };
         const langPicker = document.getElementById('langPicker');
@@ -211,7 +276,8 @@
             delSudoku: 'btn-del-sudoku', delMinefield: 'btn-del-minefield', delPoker: 'btn-del-poker',
             delAll: 'btn-del-all',
             onlineToggleLabel: 'onlineToggleLabel', onlineToggleSub: 'onlineToggleSub',
-            descOnlineTavla: 'descOnlineTavla', descOnlinePoker: 'descOnlinePoker'
+            descOnlineTavla: 'descOnlineTavla', descOnlinePoker: 'descOnlinePoker',
+            onlineBadgeTavla: 'onlineBadgeTavla', onlineBadgePoker: 'onlineBadgePoker', playMoneyPill: 'playMoneyPill'
         };
 
         // Online games toggle

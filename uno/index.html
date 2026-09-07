@@ -2,103 +2,25 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UNO</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="/manifest.json">
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moved — Crazy Eights</title>
+
+    <!-- The card game formerly at this path is now at /crazy-eights/.
+         This stub only exists so old bookmarks, shared links and cached PWA
+         routes keep working. It is deliberately not indexed. -->
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="canonical" href="https://games.cagancalidag.com/crazy-eights/">
+    <meta http-equiv="refresh" content="0; url=/crazy-eights/">
+    <script>location.replace('/crazy-eights/');</script>
+
+    <style>
+        body { background:#1a1a2e; color:#fff; font-family:'Segoe UI',Tahoma,sans-serif;
+               min-height:100dvh; display:flex; align-items:center; justify-content:center;
+               text-align:center; padding:2rem; margin:0; }
+        a { color:#e94560; }
+    </style>
 </head>
 <body>
-    <div class="app-container">
-        <header>
-            <div class="header-left">
-                <a href="/" class="global-hub-btn">🏠</a>
-                <h1 id="ui-title">UNO</h1>
-            </div>
-            <select id="langPicker"><option value="en">English</option><option value="tr">Türkçe</option></select>
-        </header>
-
-        <div id="screen-setup" class="screen active card center">
-            <h2 id="ui-setup">Setup Game</h2>
-            <div class="stepper">
-                <label id="ui-players">Players: </label>
-                <button onclick="changeP(-1)">-</button>
-                <span id="val-p">2</span>
-                <button onclick="changeP(1)">+</button>
-            </div>
-            <div id="name-list" class="name-list"></div>
-            <button id="btn-start" class="btn" onclick="initGame()" style="margin-top:10px">Start</button>
-            <button id="btn-del-setup" class="btn danger" onclick="resetDB()" style="margin-top:10px">Delete Data</button>
-            <button class="btn icon" onclick="document.getElementById('rulesModal').style.display='flex'" style="margin-top:10px">?</button>
-        </div>
-
-        <div id="screen-pass" class="screen card center">
-            <h2 id="ui-pass-msg">Player 1 Turn</h2>
-            <button id="btn-show-cards" class="btn" onclick="showGame()">Tap to show cards</button>
-            
-            <details class="mobile-details" style="margin-top: 2rem; width: 100%;">
-                <summary id="ui-game-menu-pass">Game Menu</summary>
-                <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 10px;">
-                    <button id="btn-new-pass" class="btn" onclick="resetGame()">New Game</button>
-                    <button id="btn-del-pass" class="btn danger" onclick="resetDB()">Delete Data</button>
-                </div>
-            </details>
-        </div>
-
-        <div id="screen-game" class="screen">
-            <details class="mobile-details" style="margin-bottom: 10px;">
-                <summary id="ui-game-menu">Game Menu</summary>
-                <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 10px;">
-                    <button id="btn-new-game" class="btn" style="flex: 1;" onclick="resetGame()">New Game</button>
-                    <button id="btn-del-game" class="btn danger" style="flex: 1;" onclick="resetDB()">Delete Data</button>
-                    <button class="btn icon" onclick="document.getElementById('rulesModal').style.display='flex'">?</button>
-                </div>
-            </details>
-
-            <div class="table-area">
-                <div class="deck"><div class="card-back">UNO</div></div>
-                <div id="discard-pile" class="discard"></div>
-            </div>
-            
-            <div class="status-row">
-                <span id="ui-turn-info" style="flex:1">Player 1</span>
-                <div style="display: flex; gap: 10px;">
-                    <button id="btn-undo" class="btn small" style="background:#f39c12; display:none;" onclick="undoPlay()">Undo</button>
-                    <button id="btn-draw" class="btn small" onclick="drawCard()">+ 🃏</button>
-                    <button id="btn-uno" class="btn danger small" onclick="callUno()">UNO!</button>
-                </div>
-            </div>
-            
-            <div id="player-hand" class="hand-area"></div>
-            
-            <button id="btn-end-turn" class="btn" onclick="endTurn()" style="display:none; margin-top:10px">End Turn</button>
-        </div>
-    </div>
-    
-    <div id="rulesModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="document.getElementById('rulesModal').style.display='none'">&times;</span>
-            <h2 id="ui-rules-title">Rules</h2>
-            <div id="rules-text"></div>
-        </div>
-    </div>
-
-    <!-- Win Modal -->
-    <div id="winModal" class="modal">
-        <div class="modal-content" style="text-align:center;">
-            <h2 id="win-modal-title">Player 1 Wins!</h2>
-            <button id="btn-win-new" class="btn" style="width:100%; margin-top:1rem;" onclick="winNewGame()">New Game</button>
-        </div>
-    </div>
-
-    <!-- UNO Forgot Toast -->
-    <div id="forgot-toast" style="display:none; position:fixed; bottom:2rem; left:50%; transform:translateX(-50%); background:#e53935; color:#fff; padding:12px 24px; border-radius:8px; font-weight:bold; z-index:200; text-align:center;"></div>
-
-    <!-- UNO Called Banner -->
-    <div id="uno-banner" style="display:none; position:fixed; top:1rem; left:50%; transform:translateX(-50%); background:#e94560; color:#fff; padding:10px 28px; border-radius:8px; font-weight:bold; font-size:1.3rem; z-index:200; text-align:center;"></div>
-
-    <script src="script.js"></script>
-    <script src="/sw-register.js"></script>
+    <p>This game is now at <a href="/crazy-eights/">/crazy-eights/</a>. Redirecting…</p>
 </body>
 </html>
